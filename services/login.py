@@ -11,7 +11,7 @@ def check_login(username, password):
         cursor.execute("""
             SELECT USERNAME, PASSWORD, EMPLOYEEID
             FROM USERMAST
-            WHERE USERNAME=? AND EXPIRED<>'y'
+            WHERE USERNAME=%s AND EXPIRED<>'y'
         """, (username,))
 
         row = cursor.fetchone()
