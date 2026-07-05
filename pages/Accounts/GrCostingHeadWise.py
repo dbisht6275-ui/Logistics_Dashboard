@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import pyodbc
+from services.database import get_connection
 from datetime import datetime
 from io import BytesIO
 from st_aggrid import AgGrid, GridOptionsBuilder
@@ -19,15 +19,7 @@ def get_GR_CostingHeadwise(date1_from, date1_to):
         from1_dt = datetime.strptime(date1_from, "%d-%m-%Y").strftime("%Y-%m-%d")
         to1_dt = datetime.strptime(date1_to, "%d-%m-%Y").strftime("%Y-%m-%d")
 
-        conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 18 for SQL Server};'
-            'SERVER=142.79.224.75,21443;'
-            'DATABASE=GreenTransSugamParivahan;'
-            'UID=data_analytics;'
-            'PWD=User@1234;'
-            'Encrypt=yes;'
-            'TrustServerCertificate=yes;'
-        )
+        conn = get_connection()
 
         query = f"""
         DECLARE @FromDate DATE = '{from1_dt}';

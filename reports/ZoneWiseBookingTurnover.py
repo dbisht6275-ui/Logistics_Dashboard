@@ -1,7 +1,6 @@
-import pyodbc
 import pandas as pd
 from datetime import datetime
-
+from services.database import get_connection
 
 def get_zone_wise_booking_turnover(
         date1_from, date1_to,
@@ -40,15 +39,7 @@ def get_zone_wise_booking_turnover(
         # -----------------------------
         # DATABASE CONNECTION
         # -----------------------------
-        conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 18 for SQL Server};'
-            'SERVER=142.79.224.75,21443;'
-            'DATABASE=GreenTransSugamParivahan;'
-            'UID=data_analytics;'
-            'PWD=User@1234;'
-            'Encrypt=yes;'
-            'TrustServerCertificate=yes;'
-        )
+        conn = get_connection()
 
         # -----------------------------
         # SQL QUERY
