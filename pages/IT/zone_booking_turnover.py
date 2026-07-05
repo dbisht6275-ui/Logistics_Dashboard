@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import pyodbc
+from services.database import get_connection
 from datetime import datetime
 from io import BytesIO
 from st_aggrid import AgGrid, GridOptionsBuilder
@@ -42,15 +42,7 @@ def get_zone_wise_booking_turnover(
         part2 = f"2. {date2_from.strftime('%d-%b-%y').upper()} TO {date2_to.strftime('%d-%b-%y').upper()}"
         part3 = f"3. {date3_from.strftime('%d-%b-%y').upper()} TO {date3_to.strftime('%d-%b-%y').upper()}"
 
-        conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 18 for SQL Server};'
-            'SERVER=142.79.224.75,21443;'
-            'DATABASE=GreenTransSugamParivahan;'
-            'UID=data_analytics;'
-            'PWD=User@1234;'
-            'Encrypt=yes;'
-            'TrustServerCertificate=yes;'
-        )
+        conn = get_connection()
 
         query = f"""
         SELECT S.PARTICULAR,
