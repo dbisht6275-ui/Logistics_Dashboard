@@ -1,5 +1,4 @@
 import streamlit as st
-import pyodbc
 from services.database import get_connection
 from services.roles import get_role_for_employee, get_data_scope_for_employee
 
