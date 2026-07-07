@@ -254,9 +254,9 @@ def show_overview():
 
     with header_left:
         st.markdown("""
-        <h3 style='margin:0;padding:0;'>Overview</h3>
+        <h3 style='margin:0;padding:0;'>Revenue Overview</h3>
         <p style='margin:0;color:#64748b;font-size:12px;'>
-        Logistics Performance Dashboard
+         Performance Dashboard
         </p>
         """, unsafe_allow_html=True)
 
