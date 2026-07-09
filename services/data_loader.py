@@ -262,18 +262,11 @@ def load_booking_data(start_date, end_date, view_type="origin"):
             END AS IsLate
 
         FROM cnmt cn
-
-        INNER JOIN stationmast v
-            ON v.stncode = cn.destcode
-        INNER JOIN stationmast orig
-            ON orig.stncode = cn.orgcode
-        inner join cngrcngemast cngr on cngr.code=cn.cngrcode
-        inner join cngrcngemast cnge on cnge.code=cn.cngecode
-        LEFT JOIN stationmast m
-            ON v.mergestncode = m.stncode
-
-        LEFT JOIN viewstationmast z
-            ON z.stncode = ISNULL(m.mergestncode, cn.destcode)
+        INNER JOIN stationmast v ON v.stncode = cn.destcode
+        INNER JOIN cngrcngemast cngr ON cngr.code = cn.cngrcode
+        INNER JOIN cngrcngemast cnge ON cnge.code = cn.cngecode
+        LEFT JOIN stationmast m ON m.stncode = v.mergestncode
+        LEFT JOIN viewstationmast z ON z.stncode = ISNULL(m.stncode, v.stncode)
         outer apply (select max(d.drdt) as deliverydt from viewallcompaniesgatepass d where d.grno=cn.grno and d.cancel<>'y') gp
         outer apply (select max(ld.lhcdt) as lastdespdt from GTI_ViewAllCompaniesGRLHC ld where ld.grno=cn.grno) as lastdsp 
         WHERE cn.grdt BETWEEN '{start_date}' AND '{end_date}'
