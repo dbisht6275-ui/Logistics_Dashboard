@@ -406,7 +406,6 @@ with st.sidebar:
         <div class="sugam-brand">
             <div class="sugam-brand-icon">🚚</div>
             <div>
-                <div class="sugam-brand-text">Logistics BI</div>
                 <div class="sugam-brand-sub">Sugam Dashboard</div>
             </div>
         </div>
