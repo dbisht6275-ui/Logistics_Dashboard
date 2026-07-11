@@ -895,7 +895,7 @@ def show_overview():
                     x=monthly_weight["Month"],
                     y=monthly_weight["Weight MT"],
                     text=monthly_weight["Weight MT"],
-                    texttemplate="%{text} MT",
+                
                     textposition="outside",
                     marker_color="#0f766e"
                 )
@@ -1010,10 +1010,10 @@ def show_overview():
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     st.markdown(f"""
-    ###### 🏢 Branch Network Changes ({fy})
+    ###### 🏢 Branch/Agency Network Changes ({fy})
 
-    - **New Branches Opened:** {opened_branches}
-    - **Branches Closed:** {closed_branches}
+    - **New Branches/Agencies Opened:** {opened_branches}
+    - **Branches/Agencies Closed:** {closed_branches}
     - **Net Increase:** {net_increase:+}
     """)
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
