@@ -9,7 +9,7 @@ def load_stationmast_data(start_date, end_date):
 
     engine = get_engine()
 
-    query = f"""
+    query = text("""
         SELECT 
             ZONE.ZONENAME AS ZONE,
             IIF(S.OWNED='Y','BRANCH',IIF(S.ISAGENCY='Y','AGENCY','')) AS TYPE,
@@ -27,9 +27,9 @@ def load_stationmast_data(start_date, end_date):
             S.latposition,
             S.longposition,
             CASE
-                WHEN S.ACTIVEDATE BETWEEN '{start_date}' AND '{end_date}'
+                WHEN S.ACTIVEDATE BETWEEN :start_date AND :end_date
                     THEN 'OPENED'
-                WHEN S.CLOSEDATE BETWEEN '{start_date}' AND '{end_date}'
+                WHEN S.CLOSEDATE BETWEEN :start_date AND :end_date
                     THEN 'CLOSED'
             END AS STATUS
                     
@@ -39,9 +39,9 @@ def load_stationmast_data(start_date, end_date):
             ZONEMAST ZONE ON ZONE.ZONECODE = S.ZONECODE
         WHERE 
             (
-                S.ACTIVEDATE BETWEEN '{start_date}' AND '{end_date}'
+                S.ACTIVEDATE BETWEEN :start_date AND :end_date
                 OR
-                S.CLOSEDATE BETWEEN '{start_date}' AND '{end_date}'
+                S.CLOSEDATE BETWEEN :start_date AND :end_date
             ) and 
             (S.OWNED = 'Y'  OR S.ISAGENCY='Y')
             AND S.ACTIVE = 'Y' 
@@ -64,12 +64,12 @@ def load_stationmast_data(start_date, end_date):
                     IIF(ZONE.ZONENAME='NEPAL ZONE','6','')))))),
             S.STNCODE, 
             S.STNNAME;
+        """)
 
-        """
-
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query, engine, params={"start_date": start_date, "end_date": end_date})
 
     return df
+
 
 # -------- DATE RANGE FUNCTION --------
 
