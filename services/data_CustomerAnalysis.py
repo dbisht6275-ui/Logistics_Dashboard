@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
-from services.database import get_connection
+from sqlalchemy import text
+from services.database import get_engine
+
 
 
 @retry(
@@ -16,14 +18,8 @@ def _run_query(query):
     If the connection dies mid-query (network drop / server timeout),
     this closes it and retries with a brand new connection up to 3 times.
     """
-    conn = get_connection()
-    try:
-        return pd.read_sql(query, conn)
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+    engine = get_engine()
+    return pd.read_sql(query, engine)
 
 
 @st.cache_data(ttl=3600)
