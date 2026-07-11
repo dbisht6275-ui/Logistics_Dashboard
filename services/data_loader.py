@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
-import time 
 from sqlalchemy import text
+from concurrent.futures import ThreadPoolExecutor
 from services.database import get_engine
+
 
 @st.cache_data(ttl=1800)
 def load_booking_data(start_date, end_date, view_type="origin"):
 
-    t0 = time.time()
     engine = get_engine()
 
     query = text("""
@@ -27,10 +27,49 @@ def load_booking_data(start_date, end_date, view_type="origin"):
                 "view_type": view_type.upper()
             }
         )
-    elapsed = time.time() - t0
-    st.write(f"⏱️ load_booking_data({start_date} to {end_date}) took {elapsed:.1f}s, rows: {len(df)}")
 
     return df
+
+
+@st.cache_data(ttl=1800)
+def load_booking_data_pair(start_date, end_date, prev_start, prev_end, view_type="origin"):
+    """
+    Fetches the current-period data AND the previous-year (LY) data
+    AT THE SAME TIME using two threads, instead of one after another.
+
+    Since these are two independent DB round-trips (each opens its own
+    connection from the pool), running them in parallel roughly halves
+    the total wait time compared to calling load_booking_data() twice
+    back-to-back.
+    """
+
+    def _fetch(s, e):
+        engine = get_engine()
+        query = text("""
+            EXEC dbo.RevenueDataForPythonDashboard
+                @StartDate=:start_date,
+                @EndDate=:end_date,
+                @ViewType=:view_type
+        """)
+        with engine.connect() as conn:
+            return pd.read_sql(
+                query,
+                conn,
+                params={
+                    "start_date": s,
+                    "end_date": e,
+                    "view_type": view_type.upper()
+                }
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        current_future = executor.submit(_fetch, start_date, end_date)
+        prev_future = executor.submit(_fetch, prev_start, prev_end)
+
+        current_df = current_future.result()
+        prev_df = prev_future.result()
+
+    return current_df, prev_df
 
 
 # -------- DATE RANGE FUNCTION --------
