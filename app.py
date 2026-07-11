@@ -369,11 +369,11 @@ _role_class_map = {
 }
 role_class = _role_class_map.get(role.lower(), "sugam-role-viewer")
 
-# Session meta (current date + login time, shown once per session)
-if "_login_time" not in st.session_state:
-    st.session_state["_login_time"] = datetime.now().strftime("%I:%M %p")
+# # Session meta (current date + login time, shown once per session)
+# if "_login_time" not in st.session_state:
+#     st.session_state["_login_time"] = datetime.now().strftime("%I:%M %p")
 
-today_str = datetime.now().strftime("%d %b %Y")
+# today_str = datetime.now().strftime("%d %b %Y")
 
 
 with st.sidebar:
@@ -389,17 +389,17 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    # ---- Session meta: today's date + login time ----
-    st.markdown(f"""
-        <div class="sugam-session-meta">
-            <span>📅 {today_str}</span>
-            <span>🕐 Logged in {st.session_state['_login_time']}</span>
-        </div>
-    """, unsafe_allow_html=True)
+    # # ---- Session meta: today's date + login time ----
+    # st.markdown(f"""
+    #     <div class="sugam-session-meta">
+    #         <span>📅 {today_str}</span>
+    #         <span>🕐 Logged in {st.session_state['_login_time']}</span>
+    #     </div>
+    # """, unsafe_allow_html=True)
 
-    if st.button("🚪 Logout", use_container_width=True):
-        st.session_state.clear()
-        st.rerun()
+    # if st.button("🚪 Logout", use_container_width=True):
+    #     st.session_state.clear()
+    #     st.rerun()
 
     # ---- Brand lockup ----
     st.markdown("""
