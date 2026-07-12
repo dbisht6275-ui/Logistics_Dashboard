@@ -20,6 +20,8 @@ Only three report parameters are selected by the user:
     2. To Date
     3. As On Date
 
+The database query runs only when the user clicks Run Report.
+
 Database credentials are handled centrally by services.database.get_engine()
 through services.data_outstanding.get_outstanding_data().
 
@@ -341,8 +343,8 @@ def show_OutstandingAnalysis():
     default_to_date = date(2026, 3, 31)
     default_as_on_date = date(2026, 3, 31)
 
-    date_col1, date_col2, date_col3, run_col, refresh_col = st.columns(
-        [1.25, 1.25, 1.25, 0.9, 0.9]
+    date_col1, date_col2, date_col3, run_col = st.columns(
+        [1.25, 1.25, 1.25, 0.9]
     )
 
     with date_col1:
@@ -375,45 +377,25 @@ def show_OutstandingAnalysis():
             use_container_width=True,
         )
 
-    with refresh_col:
-        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        refresh_report = st.button(
-            "Refresh",
-            key="oa_refresh_report",
-            use_container_width=True,
-        )
-
     date_error = _validate_dates(from_date, to_date, as_on_date)
 
     if date_error:
         st.error(date_error)
         return
 
-    # Load automatically on the first visit.
-    should_load = (
-        run_report
-        or refresh_report
-        or "oa_df" not in st.session_state
-        or st.session_state.get("oa_loaded_dates")
-        != (from_date, to_date, as_on_date)
-    )
-
-    if should_load:
+    # Load data only after the user presses Run Report.
+    if run_report:
         try:
-            if refresh_report:
-                get_outstanding_data.clear()
-
-            with st.spinner("Loading outstanding data..."):
-                loaded_df = get_outstanding_data(
-                    branch=SP_BRANCH,
-                    grtype=SP_GRTYPE,
-                    from_dt=from_date,
-                    to_dt=to_date,
-                    as_on_dt=as_on_date,
-                    custcode=SP_CUSTCODE,
-                    invoiceno=SP_INVOICENO,
-                    user=SP_USER,
-                )
+            loaded_df = get_outstanding_data(
+                branch=SP_BRANCH,
+                grtype=SP_GRTYPE,
+                from_dt=from_date,
+                to_dt=to_date,
+                as_on_dt=as_on_date,
+                custcode=SP_CUSTCODE,
+                invoiceno=SP_INVOICENO,
+                user=SP_USER,
+            )
 
             st.session_state["oa_df"] = loaded_df
             st.session_state["oa_loaded_dates"] = (
@@ -427,11 +409,25 @@ def show_OutstandingAnalysis():
             st.error(f"Unable to load outstanding data: {exc}")
             return
 
-    df = st.session_state.get("oa_df", pd.DataFrame()).copy()
+    # Do not query the database automatically on first page load.
+    if "oa_df" not in st.session_state:
+        st.info("Select the three dates and click **Run Report** to load data.")
+        return
+
+    df = st.session_state["oa_df"].copy()
 
     if df.empty:
         st.warning("No outstanding data was found for the selected dates.")
         return
+
+    loaded_dates = st.session_state.get("oa_loaded_dates")
+    selected_dates = (from_date, to_date, as_on_date)
+
+    if loaded_dates and loaded_dates != selected_dates:
+        st.warning(
+            "The date filters have changed. Click **Run Report** to load data "
+            "for the newly selected dates."
+        )
 
     # -----------------------------------------------------------------------
     # DETECT AVAILABLE HIERARCHY COLUMNS
