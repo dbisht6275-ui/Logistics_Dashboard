@@ -390,19 +390,19 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    # # ---- Session meta: today's date + login time ----
-    # st.markdown(f"""
-    #     <div class="sugam-session-meta">
-    #         <span>📅 {today_str}</span>
-    #         <span>🕐 Logged in {st.session_state['_login_time']}</span>
-    #     </div>
-    # """, unsafe_allow_html=True)
+    # ---- Session meta: today's date + login time ----
+    st.markdown(f"""
+        <div class="sugam-session-meta">
+            <span>📅 {today_str}</span>
+            <span>🕐 Logged in {st.session_state['_login_time']}</span>
+        </div>
+    """, unsafe_allow_html=True)
 
-    # if st.button("🚪 Logout", use_container_width=True):
-    #     st.session_state.clear()
-    #     st.rerun()
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
 
-    # ---- Brand lockup ----
+    ---- Brand lockup ----
     st.markdown("""
         <div class="sugam-brand">
             <div class="sugam-brand-icon">🚚</div>
