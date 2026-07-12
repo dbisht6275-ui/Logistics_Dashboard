@@ -370,11 +370,11 @@ _role_class_map = {
 }
 role_class = _role_class_map.get(role.lower(), "sugam-role-viewer")
 
-# # Session meta (current date + login time, shown once per session)
-# if "_login_time" not in st.session_state:
-#     st.session_state["_login_time"] = datetime.now().strftime("%I:%M %p")
+# Session meta (current date + login time, shown once per session)
+if "_login_time" not in st.session_state:
+    st.session_state["_login_time"] = datetime.now().strftime("%I:%M %p")
 
-# today_str = datetime.now().strftime("%d %b %Y")
+today_str = datetime.now().strftime("%d %b %Y")
 
 
 with st.sidebar:
@@ -398,11 +398,11 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🚪 Logout", use_container_width=True):
+    if st.button("🚪 Logout", use_container_width=True, key="sidebar_logout"):
         st.session_state.clear()
         st.rerun()
 
-    ---- Brand lockup ----
+    # ---- Brand lockup ----
     st.markdown("""
         <div class="sugam-brand">
             <div class="sugam-brand-icon">🚚</div>
