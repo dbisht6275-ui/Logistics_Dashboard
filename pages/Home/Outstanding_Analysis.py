@@ -37,19 +37,23 @@ Supported scope examples:
 ------------------------------------------------------------------------------
 CHANGES IN THIS VERSION
 ------------------------------------------------------------------------------
-1. "Show only pending records" checkbox (default ON). When ON, any row whose
-   Net Outstanding is already zero (i.e. fully paid) is dropped from the
-   dataframe BEFORE any KPI, chart or table is built. This is what fixes the
-   "Total Billed / Total Received show everything from start to end" issue:
-   previously all invoices in the date range were being summed even if they
-   were already fully settled.
+1. The "Show only pending records" checkbox and its underlying filter have
+   been removed entirely. The page now always shows every row returned by
+   the stored procedure for the selected date range -- fully settled and
+   still-pending invoices alike.
 
 2. All monetary values are displayed in ₹ Crore (2 decimal places) across
-   KPI cards, charts and tables.
+   KPI cards, charts and grouped summary tables. The Detailed Records table
+   is the one exception -- it stays in plain ₹ since it shows individual
+   invoice-level rows, where crore formatting made small amounts unreadable.
 
 3. Previous-period (PY) growth-arrow comparison has been removed. KPI cards
    now show plain values only, with no ▲/▼ badge and no second stored
    procedure call for the preceding period.
+
+4. "Total Billed" and "Total Received" KPI cards have been replaced with
+   "Total Invoices" and "Total Customers" (plain counts), which removes the
+   ambiguity those two amount-based cards used to cause.
 ------------------------------------------------------------------------------
 """
 
@@ -248,24 +252,6 @@ def _match_scope_value(series, scope_value):
         .str.casefold()
         .eq(target)
     )
-
-
-def _filter_only_outstanding(df, enabled):
-    """
-    Keep only rows where the invoice is still pending (Net Outstanding != 0).
-
-    This is the core fix: previously every invoice in the date range was
-    included even if it was already fully paid, which inflated Total Billed
-    and Total Received with settled records. When enabled, fully-settled
-    rows (netbalance == 0) are dropped everywhere downstream -- KPIs,
-    charts, and the detail table.
-    """
-    if not enabled or "netbalance" not in df.columns:
-        return df
-
-    numeric_net = pd.to_numeric(df["netbalance"], errors="coerce").fillna(0)
-
-    return df[numeric_net != 0]
 
 
 def _derive_role_scope(df, zone_col, circle_col, branch_col):
@@ -553,30 +539,6 @@ def show_OutstandingAnalysis():
         )
 
     # -----------------------------------------------------------------------
-    # SHOW ONLY PENDING (OUTSTANDING) RECORDS
-    # -----------------------------------------------------------------------
-    # This is the fix for Total Billed / Total Received showing everything
-    # from start to end -- fully paid invoices (netbalance == 0) are excluded
-    # from here onward when this toggle is ON.
-
-    only_outstanding = st.checkbox(
-        "Show only pending records (payment not fully received)",
-        value=True,
-        key="oa_only_outstanding",
-        help=(
-            "When ON, invoices that are already fully settled "
-            "(Net Outstanding = ₹0) are removed from every KPI, chart "
-            "and table on this page."
-        ),
-    )
-
-    df = _filter_only_outstanding(df, only_outstanding)
-
-    if df.empty:
-        st.warning("No pending (outstanding) records found for the selected dates.")
-        return
-
-    # -----------------------------------------------------------------------
     # DETECT AVAILABLE HIERARCHY COLUMNS
     # -----------------------------------------------------------------------
 
@@ -861,12 +823,10 @@ def show_OutstandingAnalysis():
     )
 
     # NOTE: "Total Billed" and "Total Received" KPI cards were removed on
-    # request -- they were causing confusion (e.g. when "Show only pending
-    # records" is ON, these two summed only the pending rows' billed/received
-    # amounts, not the true full-period billed/received totals, which looked
-    # inconsistent to users). They are replaced with two count-based cards
-    # (Total Invoices, Total Customers) that are unambiguous regardless of
-    # the pending-records toggle.
+    # request -- they were causing confusion (their totals depended on
+    # which rows happened to be settled vs pending). They are replaced
+    # with two count-based cards (Total Invoices, Total Customers) that
+    # are unambiguous.
 
     k1, k2, k3, k4, k5, k6 = st.columns(6)
 
@@ -1465,7 +1425,11 @@ def show_OutstandingAnalysis():
 
     detail_df = fdf[show_columns].copy() if show_columns else fdf.copy()
 
-    # Convert monetary columns in the detail table to ₹ Crore as well.
+    # NOTE: Detail Records is left in plain ₹ (not ₹ Cr) on purpose --
+    # this table shows individual invoice-level rows, and converting each
+    # row to crore made per-invoice amounts unreadable (values like
+    # ₹0.00 Cr for small invoices). Crore formatting is still used
+    # everywhere else (KPI cards, charts, grouped summary tables).
     money_columns = [
         column
         for column in ["billamount", "recdamount", "balance", "onaccrecd", "netbalance"]
@@ -1473,15 +1437,9 @@ def show_OutstandingAnalysis():
     ]
 
     for column in money_columns:
-        detail_df[column] = (
-            pd.to_numeric(detail_df[column], errors="coerce").fillna(0) / 1_00_00_000
-        )
-
-    rename_map = {
-        column: f"{column}_cr"
-        for column in money_columns
-    }
-    detail_df = detail_df.rename(columns=rename_map)
+        detail_df[column] = pd.to_numeric(
+            detail_df[column], errors="coerce"
+        ).fillna(0)
 
     search_text = st.text_input(
         "Search customer, invoice number, branch or other details",
@@ -1505,14 +1463,14 @@ def show_OutstandingAnalysis():
     #   number of cells allowed to be rendered by Pandas Styler is configured
     #   to `262144`.
     # Styler has a hard render-cell cap that a full detail export can easily
-    # exceed. column_config formatting achieves the same "₹ Cr" display
-    # without going through Styler at all, so there is no cell limit here.
+    # exceed. column_config formatting achieves the same "₹" display without
+    # going through Styler at all, so there is no cell limit here.
     column_config = {
         column: st.column_config.NumberColumn(
-            column.replace("_cr", "").replace("_", " ").title() + " (₹ Cr)",
-            format="₹%.2f Cr",
+            column.replace("_", " ").title() + " (₹)",
+            format="₹%.0f",
         )
-        for column in rename_map.values()
+        for column in money_columns
     }
 
     st.dataframe(
@@ -1533,7 +1491,7 @@ def show_OutstandingAnalysis():
         )
 
     st.download_button(
-        "Download filtered data (Excel, ₹ Cr)",
+        "Download filtered data (Excel)",
         data=excel_buffer.getvalue(),
         file_name=(
             "outstanding_filtered_"
