@@ -224,6 +224,99 @@ def build_yoy_trend(current_df, previous_df, trend_type, date_col, fy_start, pre
     return trend_df
 
 
+
+def build_weight_yoy_trend(current_df, previous_df, trend_type, date_col, fy_start, prev_fy_start, month_map):
+    """Build Current-FY vs LY weight trend in MT for Daily/Weekly/Monthly/Quarterly views."""
+    cur = current_df.copy()
+    prev = previous_df.copy() if previous_df is not None and not previous_df.empty else pd.DataFrame()
+
+    cur[date_col] = pd.to_datetime(cur[date_col], errors="coerce")
+    if not prev.empty and date_col in prev.columns:
+        prev[date_col] = pd.to_datetime(prev[date_col], errors="coerce")
+
+    fy_start_ts = pd.to_datetime(fy_start) if fy_start else None
+    prev_fy_start_ts = pd.to_datetime(prev_fy_start) if prev_fy_start else None
+
+    if trend_type == "Daily":
+        trend_df = cur.groupby(cur[date_col].dt.date)["aweight"].sum().reset_index()
+        trend_df.columns = ["Period", "AWEIGHT"]
+        trend_df["Key"] = (
+            (pd.to_datetime(trend_df["Period"]) - fy_start_ts).dt.days
+            if fy_start_ts is not None else range(len(trend_df))
+        )
+
+        if not prev.empty and prev_fy_start_ts is not None:
+            prev_trend = prev.groupby(prev[date_col].dt.date)["aweight"].sum().reset_index()
+            prev_trend.columns = ["Period", "PREV_AWEIGHT"]
+            prev_trend["Key"] = (pd.to_datetime(prev_trend["Period"]) - prev_fy_start_ts).dt.days
+        else:
+            prev_trend = pd.DataFrame(columns=["Period", "PREV_AWEIGHT", "Key"])
+
+    elif trend_type == "Weekly":
+        trend_df = cur.groupby(cur[date_col].dt.to_period("W"))["aweight"].sum().reset_index()
+        trend_df["Period"] = trend_df[date_col].astype(str)
+        trend_df["Key"] = (
+            ((trend_df[date_col].dt.start_time - fy_start_ts).dt.days // 7)
+            if fy_start_ts is not None else range(len(trend_df))
+        )
+        trend_df = trend_df.rename(columns={"aweight": "AWEIGHT"}).drop(columns=[date_col])
+
+        if not prev.empty and prev_fy_start_ts is not None:
+            prev_trend = prev.groupby(prev[date_col].dt.to_period("W"))["aweight"].sum().reset_index()
+            prev_trend["Key"] = (prev_trend[date_col].dt.start_time - prev_fy_start_ts).dt.days // 7
+            prev_trend = prev_trend.rename(columns={"aweight": "PREV_AWEIGHT"}).drop(columns=[date_col])
+        else:
+            prev_trend = pd.DataFrame(columns=["PREV_AWEIGHT", "Key"])
+
+    elif trend_type == "Quarterly":
+        cur["Quarter"] = cur["FIN_MONTH"].map(QUARTER_MAP)
+        trend_df = cur.groupby("Quarter")["aweight"].sum().reset_index()
+        trend_df["Quarter"] = pd.Categorical(trend_df["Quarter"], categories=QUARTER_ORDER, ordered=True)
+        trend_df = trend_df.sort_values("Quarter")
+        trend_df.columns = ["Period", "AWEIGHT"]
+        trend_df["Key"] = trend_df["Period"]
+
+        if not prev.empty and "FIN_MONTH" in prev.columns:
+            prev["Quarter"] = prev["FIN_MONTH"].map(QUARTER_MAP)
+            prev_trend = prev.groupby("Quarter")["aweight"].sum().reset_index()
+            prev_trend.columns = ["Key", "PREV_AWEIGHT"]
+        else:
+            prev_trend = pd.DataFrame(columns=["Key", "PREV_AWEIGHT"])
+
+    else:  # Monthly
+        cur["Month"] = cur["FIN_MONTH"].map(month_map)
+        trend_df = cur.groupby("Month")["aweight"].sum().reset_index()
+        trend_df["Month"] = pd.Categorical(trend_df["Month"], categories=MONTH_ORDER, ordered=True)
+        trend_df = trend_df.sort_values("Month")
+        trend_df.columns = ["Period", "AWEIGHT"]
+        trend_df["Key"] = trend_df["Period"]
+
+        if not prev.empty and "FIN_MONTH" in prev.columns:
+            prev["Month"] = prev["FIN_MONTH"].map(month_map)
+            prev_trend = prev.groupby("Month")["aweight"].sum().reset_index()
+            prev_trend.columns = ["Key", "PREV_AWEIGHT"]
+        else:
+            prev_trend = pd.DataFrame(columns=["Key", "PREV_AWEIGHT"])
+
+    trend_df["Weight MT"] = (trend_df["AWEIGHT"] / 1000).round(0)
+
+    if not prev_trend.empty:
+        prev_trend["Prev Weight MT"] = (prev_trend["PREV_AWEIGHT"] / 1000).round(0)
+        trend_df = trend_df.merge(prev_trend[["Key", "Prev Weight MT"]], on="Key", how="left")
+    else:
+        trend_df["Prev Weight MT"] = None
+
+    trend_df["Growth %"] = trend_df.apply(
+        lambda r: pct_growth(r["Weight MT"], r["Prev Weight MT"])
+        if pd.notna(r["Prev Weight MT"]) else None,
+        axis=1,
+    )
+    trend_df["Growth Label"] = trend_df["Growth %"].apply(
+        lambda x: growth_label(x) if pd.notna(x) else "N/A"
+    )
+
+    return trend_df
+
 def add_revenue_forecast(yoy_df, trend_type, selected_quarter="All", selected_month="All"):
     """
     Add forecast revenue only for the current ongoing financial month.
@@ -757,44 +850,8 @@ def show_overview():
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
     # =========================
-    # Monthly weight trend data (Current FY vs LY, same style as Revenue Trend)
+    # Weight trend data is prepared inside the chart based on selected granularity
     # =========================
-    monthly_weight = (
-        df.groupby("Month")["aweight"]
-        .sum()
-        .reset_index()
-    )
-
-    monthly_weight["Weight MT"] = (monthly_weight["aweight"] / 1000).round(0)
-
-    monthly_weight["Month"] = pd.Categorical(
-        monthly_weight["Month"],
-        categories=MONTH_ORDER,
-        ordered=True
-    )
-
-    monthly_weight = monthly_weight.sort_values("Month")
-
-    if not prev_df.empty:
-        prev_monthly_weight = (
-            prev_df.groupby("Month")["aweight"]
-            .sum()
-            .reset_index()
-        )
-        prev_monthly_weight["Prev Weight MT"] = (prev_monthly_weight["aweight"] / 1000).round(0)
-        prev_monthly_weight = prev_monthly_weight[["Month", "Prev Weight MT"]]
-    else:
-        prev_monthly_weight = pd.DataFrame(columns=["Month", "Prev Weight MT"])
-
-    monthly_weight = monthly_weight.merge(prev_monthly_weight, on="Month", how="left")
-
-    monthly_weight["Growth %"] = monthly_weight.apply(
-        lambda r: pct_growth(r["Weight MT"], r["Prev Weight MT"]) if pd.notna(r["Prev Weight MT"]) else None,
-        axis=1
-    )
-    monthly_weight["Growth Label"] = monthly_weight["Growth %"].apply(
-        lambda x: growth_label(x) if pd.notna(x) else "N/A"
-    )
 
     # Zone-wise revenue data
     zone_df = (
@@ -922,77 +979,102 @@ def show_overview():
 
     with zone_col3:
         with st.container(border=True):
+            weight_title_col, weight_filter_col = st.columns([1.35, 1.65])
+
+            with weight_filter_col:
+                weight_trend_type = st.segmented_control(
+                    "",
+                    ["Daily", "Weekly", "Monthly", "Quarterly"],
+                    default="Monthly",
+                    label_visibility="collapsed",
+                    key="weight_trend_type",
+                )
+
+            DATE_COL = "grdt"
+            weight_yoy_df = build_weight_yoy_trend(
+                df,
+                prev_df,
+                weight_trend_type,
+                DATE_COL,
+                start_date,
+                prev_start,
+                month_map,
+            )
+
             weight_growth_total = pct_growth(
-                monthly_weight["Weight MT"].sum(),
-                monthly_weight["Prev Weight MT"].sum()
+                weight_yoy_df["Weight MT"].sum(),
+                weight_yoy_df["Prev Weight MT"].sum(),
             )
             _w_badge_color = "#166534" if weight_growth_total >= 0 else "#dc2626"
 
-            st.markdown(
-                f"###### Monthly Weight(MT) Trend "
-                f"<span style='font-size:11px;font-weight:700;color:{_w_badge_color};'>"
-                f"({growth_label(weight_growth_total)} vs LY)</span>",
-                unsafe_allow_html=True
-            )
+            with weight_title_col:
+                st.markdown(
+                    f"###### Weight(MT) Trend "
+                    f"<span style='font-size:11px;font-weight:700;color:{_w_badge_color};'>"
+                    f"({growth_label(weight_growth_total)} vs LY)</span>",
+                    unsafe_allow_html=True,
+                )
 
-            # Monthly weight grouped bar chart — LY vs Current FY
             fig_weight = go.Figure()
 
             fig_weight.add_trace(
                 go.Bar(
-                    x=monthly_weight["Month"],
-                    y=monthly_weight["Prev Weight MT"],
+                    x=weight_yoy_df["Period"],
+                    y=weight_yoy_df["Prev Weight MT"],
                     name=f"LY ({prev_fy})",
                     marker_color="#cbd5e1",
-                    text=monthly_weight["Prev Weight MT"],
+                    text=weight_yoy_df["Prev Weight MT"],
                     texttemplate="%{text:.0f}",
                     textposition="outside",
-                    textfont=dict(size=9, color="#64748b")
+                    textfont=dict(size=9, color="#64748b"),
                 )
             )
 
             fig_weight.add_trace(
                 go.Bar(
-                    x=monthly_weight["Month"],
-                    y=monthly_weight["Weight MT"],
+                    x=weight_yoy_df["Period"],
+                    y=weight_yoy_df["Weight MT"],
                     name=f"Current ({fy})",
                     marker_color="#0f766e",
-                    text=monthly_weight["Weight MT"],
+                    text=weight_yoy_df["Weight MT"],
                     texttemplate="%{text:.0f}",
                     textposition="outside",
-                    textfont=dict(size=9, color="#0f766e")
+                    textfont=dict(size=9, color="#0f766e"),
                 )
             )
 
             weight_max = pd.concat([
-                monthly_weight["Weight MT"],
-                monthly_weight["Prev Weight MT"]
+                weight_yoy_df["Weight MT"],
+                weight_yoy_df["Prev Weight MT"],
             ]).max()
             weight_max = weight_max if pd.notna(weight_max) and weight_max > 0 else 1
 
-            for _, r in monthly_weight.iterrows():
-                if r["Growth Label"] and r["Growth Label"] != "N/A":
-                    label_color = "#166534" if (r["Growth %"] or 0) >= 0 else "#dc2626"
-                    bar_top = max(
-                        r["Weight MT"] if pd.notna(r["Weight MT"]) else 0,
-                        r["Prev Weight MT"] if pd.notna(r["Prev Weight MT"]) else 0
-                    )
-                    fig_weight.add_annotation(
-                        x=r["Month"],
-                        y=bar_top + (weight_max * 0.16),
-                        text=r["Growth Label"],
-                        showarrow=False,
-                        font=dict(size=10, color=label_color, family="Arial Black")
-                    )
+            show_weight_annotations = len(weight_yoy_df) <= 40
+            if show_weight_annotations:
+                for _, r in weight_yoy_df.iterrows():
+                    if r["Growth Label"] and r["Growth Label"] != "N/A":
+                        label_color = "#166534" if (r["Growth %"] or 0) >= 0 else "#dc2626"
+                        bar_top = max(
+                            r["Weight MT"] if pd.notna(r["Weight MT"]) else 0,
+                            r["Prev Weight MT"] if pd.notna(r["Prev Weight MT"]) else 0,
+                        )
+                        fig_weight.add_annotation(
+                            x=r["Period"],
+                            y=bar_top + (weight_max * 0.16),
+                            text=r["Growth Label"],
+                            showarrow=False,
+                            font=dict(size=10, color=label_color, family="Arial Black"),
+                        )
 
             fig_weight.update_layout(
                 barmode="group",
                 height=190,
-                margin=dict(l=2, r=2, t=2, b=2),
+                margin=dict(l=2, r=2, t=25, b=2),
                 plot_bgcolor="white",
                 paper_bgcolor="white",
                 legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0, font=dict(size=8)),
-                yaxis_range=[0, weight_max * 1.35]
+                yaxis_title="Weight (MT)",
+                yaxis_range=[0, weight_max * 1.35],
             )
             fig_weight.update_xaxes(showgrid=False, zeroline=False)
             fig_weight.update_yaxes(showgrid=False, zeroline=False)
