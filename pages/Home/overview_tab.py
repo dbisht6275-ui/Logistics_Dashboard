@@ -62,6 +62,78 @@ def _inject_overview_css():
             div[data-testid="stDataFrame"] {
                 font-size: 12px;
             }
+
+            /* Premium filter panel */
+            .filter-shell {
+                background: linear-gradient(135deg, #f8fbff 0%, #f3f7ff 55%, #f8fafc 100%);
+                border: 1px solid #dbe7f5;
+                border-radius: 16px;
+                padding: 12px 14px 4px 14px;
+                margin: 2px 0 10px 0;
+                box-shadow: 0 8px 24px rgba(15, 39, 71, 0.07);
+            }
+
+            .filter-title {
+                display:flex;
+                align-items:center;
+                gap:8px;
+                color:#0f2747;
+                font-size:13px;
+                font-weight:800;
+                margin-bottom:2px;
+            }
+
+            .filter-subtitle {
+                color:#64748b;
+                font-size:10px;
+                margin-bottom:8px;
+            }
+
+            div[data-testid="stSelectbox"] label,
+            div[data-testid="stMultiSelect"] label {
+                color:#334155 !important;
+                font-size:11px !important;
+                font-weight:700 !important;
+            }
+
+            div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+                min-height:38px;
+                border-radius:10px;
+                border-color:#dbe3ef;
+                background:#ffffff;
+                box-shadow:0 1px 2px rgba(15,23,42,.03);
+            }
+
+            div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {
+                border-color:#93b4e7;
+                box-shadow:0 0 0 2px rgba(37,99,235,.06);
+            }
+
+            div[data-testid="stButton"] > button {
+                min-height:38px;
+                border-radius:10px;
+                font-weight:700;
+            }
+
+            .active-filter-row {
+                display:flex;
+                flex-wrap:wrap;
+                gap:6px;
+                margin:0 0 10px 0;
+            }
+
+            .active-filter-chip {
+                display:inline-flex;
+                align-items:center;
+                gap:5px;
+                padding:4px 9px;
+                border-radius:999px;
+                border:1px solid #bfdbfe;
+                background:#eff6ff;
+                color:#1d4ed8;
+                font-size:10px;
+                font-weight:700;
+            }
         </style>
         """,
         unsafe_allow_html=True,
@@ -416,6 +488,24 @@ def create_card(title, value, color, icon, growth_value=0.0):
     st.markdown(html, unsafe_allow_html=True)
 
 
+def reset_overview_filters():
+    """Reset optional overview filters without changing View Type or Financial Year."""
+    defaults = {
+        "overview_zone": "All",
+        "overview_circle": "All",
+        "overview_branch": "All",
+        "overview_quarter": "All",
+        "overview_month": "All",
+        "overview_loadtype": "All",
+    }
+    for key, value in defaults.items():
+        st.session_state[key] = value
+
+
+def _filter_chip(label, value):
+    return f'<span class="active-filter-chip"><b>{label}</b>: {value}</span>'
+
+
 def mini_rank_card(rank, name, value, max_value, color):
     """Compact ranking row for top/bottom branch lists."""
     pct = min((value / max_value * 100), 100) if max_value else 0
@@ -449,16 +539,30 @@ def show_overview():
         unsafe_allow_html=True,
     )
 
-    # Top filter row: view type, FY, zone, circle, branch, quarter, month and load type
-    (
-        filter_col1, filter_col2, filter_col3, filter_col4,
-        filter_col5, filter_col6, filter_col7, filter_col8
-    ) = st.columns(8)
+    # =====================================================
+    # Attractive filter control panel
+    # =====================================================
+    st.markdown(
+        """
+        <div class="filter-shell">
+            <div class="filter-title">🎛️ Dashboard Filters</div>
+            <div class="filter-subtitle">Refine the dashboard by business hierarchy, period and load type.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with filter_col1:
-        view_type = st.selectbox("View Type", ["Origin", "Destination"])
+    # Primary controls: select the view and FY before loading data.
+    primary_col1, primary_col2, primary_spacer, primary_reset = st.columns([1.1, 1.2, 3.9, 0.8])
 
-    with filter_col2:
+    with primary_col1:
+        view_type = st.selectbox(
+            "View Type",
+            ["Origin", "Destination"],
+            key="overview_view_type",
+        )
+
+    with primary_col2:
         fy = st.selectbox(
             "Financial Year",
             [
@@ -471,36 +575,40 @@ def show_overview():
                 "2021-2022",
                 "2020-2021",
             ],
+            key="overview_fy",
+        )
+
+    with primary_reset:
+        st.markdown("<div style='height:23px'></div>", unsafe_allow_html=True)
+        st.button(
+            "↺ Reset",
+            use_container_width=True,
+            help="Reset Zone, Circle, Branch, Quarter, Month and Load Type",
+            on_click=reset_overview_filters,
         )
 
     if fy == "Select FY":
-        st.info("Please select financial year")
+        st.info("Select a financial year to load the dashboard.", icon="ℹ️")
         return
 
     start_date, end_date = get_date_range(fy)
-
     prev_fy = get_previous_fy(fy)
     prev_start, prev_end = get_date_range(prev_fy)
 
-    # Load current-FY AND last-year data TOGETHER, in parallel,
-    # instead of one after another. This roughly halves the wait time
-    # compared to two sequential stored-procedure calls.
-    with st.spinner("Loading data..."):
+    with st.spinner("Loading dashboard data..."):
         df, prev_df = load_booking_data_pair(
             start_date, end_date, prev_start, prev_end, view_type.lower()
         )
 
     station_df = load_stationmast_data(start_date, end_date)
-
     opened_df = station_df[station_df["STATUS"] == "OPENED"]
     closed_df = station_df[station_df["STATUS"] == "CLOSED"]
-
     opened_branches = len(opened_df)
     closed_branches = len(closed_df)
     net_increase = opened_branches - closed_branches
 
     if df.empty:
-        st.warning("No data found")
+        st.warning("No data found for the selected financial year.")
         return
 
     month_map = {
@@ -516,83 +624,145 @@ def show_overview():
         prev_df["Month"] = prev_df["FIN_MONTH"].map(month_map)
         prev_df["Quarter"] = prev_df["FIN_MONTH"].map(QUARTER_MAP)
 
-    # Data-scope restriction for this employee (set at login, from config/data_scope.json)
-    # e.g. {} = no restriction, {"zone": "Nepal Zone"}, {"circle": "NCR Circle"}, {"branch": "Noida"}
+    # Data-scope restriction configured during login.
     data_scope = st.session_state.get("data_scope", {})
-
-    # -----------------------------
-    # Auto derive parent hierarchy
-    # -----------------------------
     locked_zone = data_scope.get("zone")
     locked_circle = data_scope.get("circle")
     locked_branch = data_scope.get("branch")
 
-    # If branch right is given, derive its circle and zone
+    # Derive parent hierarchy when a lower-level right is assigned.
     if locked_branch:
         branch_row = df[df["branch"] == locked_branch]
         if not branch_row.empty:
             locked_circle = branch_row["circle"].iloc[0]
             locked_zone = branch_row["zone"].iloc[0]
-
-    # If circle right is given, derive its zone
     elif locked_circle:
         circle_row = df[df["circle"] == locked_circle]
         if not circle_row.empty:
             locked_zone = circle_row["zone"].iloc[0]
 
-    with filter_col3:
+    # Use working copies so each selector dynamically narrows the next one.
+    filtered_df = df.copy()
+
+    hierarchy_col1, hierarchy_col2, hierarchy_col3 = st.columns(3)
+
+    with hierarchy_col1:
         if locked_zone:
             zone = locked_zone
-            st.selectbox("Zone", [zone], disabled=True, help="Locked as per your assigned rights")
+            st.selectbox(
+                "🌐 Zone",
+                [zone],
+                disabled=True,
+                help="Locked as per assigned rights",
+                key="overview_zone_locked",
+            )
         else:
-            zone = st.selectbox("Zone", ["All"] + sorted(df["zone"].dropna().unique().tolist()))
+            zone_options = ["All"] + sorted(filtered_df["zone"].dropna().unique().tolist())
+            if st.session_state.get("overview_zone") not in zone_options:
+                st.session_state["overview_zone"] = "All"
+            zone = st.selectbox("🌐 Zone", zone_options, key="overview_zone")
 
     if zone != "All":
-        df = df[df["zone"] == zone]
+        filtered_df = filtered_df[filtered_df["zone"] == zone]
 
-    with filter_col4:
+    with hierarchy_col2:
         if locked_circle:
             circle = locked_circle
-            st.selectbox("Circle", [circle], disabled=True, help="Locked as per your assigned rights")
+            st.selectbox(
+                "⭕ Circle",
+                [circle],
+                disabled=True,
+                help="Locked as per assigned rights",
+                key="overview_circle_locked",
+            )
         else:
-            circle = st.selectbox("Circle", ["All"] + sorted(df["circle"].dropna().unique().tolist()))
+            circle_options = ["All"] + sorted(filtered_df["circle"].dropna().unique().tolist())
+            if st.session_state.get("overview_circle") not in circle_options:
+                st.session_state["overview_circle"] = "All"
+            circle = st.selectbox("⭕ Circle", circle_options, key="overview_circle")
 
     if circle != "All":
-        df = df[df["circle"] == circle]
+        filtered_df = filtered_df[filtered_df["circle"] == circle]
 
-    with filter_col5:
+    with hierarchy_col3:
         if locked_branch:
             branch = locked_branch
-            st.selectbox("Branch", [branch], disabled=True, help="Locked as per your assigned rights")
+            st.selectbox(
+                "🏢 Branch",
+                [branch],
+                disabled=True,
+                help="Locked as per assigned rights",
+                key="overview_branch_locked",
+            )
         else:
-            branch = st.selectbox("Branch", ["All"] + sorted(df["branch"].dropna().unique().tolist()))
+            branch_options = ["All"] + sorted(filtered_df["branch"].dropna().unique().tolist())
+            if st.session_state.get("overview_branch") not in branch_options:
+                st.session_state["overview_branch"] = "All"
+            branch = st.selectbox("🏢 Branch", branch_options, key="overview_branch")
 
     if branch != "All":
-        df = df[df["branch"] == branch]
+        filtered_df = filtered_df[filtered_df["branch"] == branch]
 
-    with filter_col6:
-        available_quarters = [q for q in QUARTER_ORDER if q in df["Quarter"].dropna().unique().tolist()]
-        quarter = st.selectbox("Quarter", ["All"] + available_quarters)
+    period_col1, period_col2, period_col3 = st.columns(3)
+
+    with period_col1:
+        available_quarters = [
+            q for q in QUARTER_ORDER
+            if q in filtered_df["Quarter"].dropna().unique().tolist()
+        ]
+        quarter_options = ["All"] + available_quarters
+        if st.session_state.get("overview_quarter") not in quarter_options:
+            st.session_state["overview_quarter"] = "All"
+        quarter = st.selectbox("📅 Quarter", quarter_options, key="overview_quarter")
 
     if quarter != "All":
-        df = df[df["Quarter"] == quarter]
+        filtered_df = filtered_df[filtered_df["Quarter"] == quarter]
 
-    with filter_col7:
-        available_months = [m for m in MONTH_ORDER if m in df["Month"].dropna().unique().tolist()]
-        month = st.selectbox("Month", ["All"] + available_months)
+    with period_col2:
+        available_months = [
+            m for m in MONTH_ORDER
+            if m in filtered_df["Month"].dropna().unique().tolist()
+        ]
+        month_options = ["All"] + available_months
+        if st.session_state.get("overview_month") not in month_options:
+            st.session_state["overview_month"] = "All"
+        month = st.selectbox("🗓️ Month", month_options, key="overview_month")
 
     if month != "All":
-        df = df[df["Month"] == month]
+        filtered_df = filtered_df[filtered_df["Month"] == month]
 
-    with filter_col8:
-        loadtype = st.selectbox("Load Type", ["All"] + sorted(df["LOADTYPE"].dropna().unique().tolist()))
+    with period_col3:
+        loadtype_options = ["All"] + sorted(filtered_df["LOADTYPE"].dropna().unique().tolist())
+        if st.session_state.get("overview_loadtype") not in loadtype_options:
+            st.session_state["overview_loadtype"] = "All"
+        loadtype = st.selectbox("🚚 Load Type", loadtype_options, key="overview_loadtype")
 
     if loadtype != "All":
-        df = df[df["LOADTYPE"] == loadtype]
+        filtered_df = filtered_df[filtered_df["LOADTYPE"] == loadtype]
+
+    # Replace the main dataframe only after all controls are resolved.
+    df = filtered_df
 
     if df.empty:
-        st.warning("No data found for selected filters")
+        st.warning("No data found for the selected filter combination.")
         return
+
+    # Show a clean summary of active selections.
+    active_chips = [
+        _filter_chip("View", view_type),
+        _filter_chip("FY", fy),
+    ]
+    for label, value in [
+        ("Zone", zone), ("Circle", circle), ("Branch", branch),
+        ("Quarter", quarter), ("Month", month), ("Load", loadtype),
+    ]:
+        if value != "All":
+            active_chips.append(_filter_chip(label, value))
+
+    st.markdown(
+        '<div class="active-filter-row">' + ''.join(active_chips) + '</div>',
+        unsafe_allow_html=True,
+    )
 
     # =========================
     # Apply the same zone/circle/branch/quarter/month/loadtype filters to the LY data
