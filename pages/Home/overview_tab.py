@@ -416,6 +416,55 @@ def create_card(title, value, color, icon, growth_value=0.0):
     st.markdown(html, unsafe_allow_html=True)
 
 
+def create_target_card(title, actual, target, unit="", decimals=2, icon="🎯"):
+    """Render a compact Target vs Actual card.
+
+    A target of zero means that the target has not yet been configured. Targets
+    entered through the dashboard are stored only in the current Streamlit
+    session and can later be replaced with database/config values.
+    """
+    actual = float(actual or 0)
+    target = float(target or 0)
+
+    if target > 0:
+        achievement = (actual / target) * 100
+        gap = actual - target
+        progress_width = min(max(achievement, 0), 100)
+        status_color = "#16a34a" if achievement >= 100 else "#f59e0b" if achievement >= 80 else "#dc2626"
+        gap_label = f"{gap:+,.{decimals}f}{unit} gap"
+        target_label = f"Target {target:,.{decimals}f}{unit}"
+        achievement_label = f"{achievement:,.1f}% achieved"
+    else:
+        progress_width = 0
+        status_color = "#94a3b8"
+        gap_label = "Enter target to calculate gap"
+        target_label = "Target not set"
+        achievement_label = "Waiting for target"
+
+    html = f"""
+    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;
+                padding:10px 11px;box-shadow:0 3px 10px rgba(15,23,42,.06);min-height:112px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <div style="font-size:11px;font-weight:800;color:#334155;">{title}</div>
+            <div style="font-size:17px;">{icon}</div>
+        </div>
+        <div style="font-size:18px;font-weight:900;color:#0f172a;line-height:1.1;">
+            {actual:,.{decimals}f}{unit}
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:6px;margin-top:4px;
+                    font-size:10px;color:#64748b;">
+            <span>{target_label}</span>
+            <span style="font-weight:800;color:{status_color};">{achievement_label}</span>
+        </div>
+        <div style="height:7px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-top:7px;">
+            <div style="height:7px;width:{progress_width:.1f}%;background:{status_color};border-radius:999px;"></div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:{status_color};margin-top:5px;">{gap_label}</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def mini_rank_card(rank, name, value, max_value, color):
     """Compact ranking row for top/bottom branch lists."""
     pct = min((value / max_value * 100), 100) if max_value else 0
@@ -661,6 +710,95 @@ def show_overview():
 
     with k8:
         create_card("T.B.B Revenue", format_cr(tbb), "#2563eb", "🚚", tbb_growth)
+
+    # =====================================================
+    # Target vs Actual row
+    # =====================================================
+    # These are temporary session-based targets. Once target data becomes
+    # available in your database, replace the number_input values with those
+    # target fields and keep the display cards unchanged.
+    with st.expander("🎯 Set Target Values (temporary)", expanded=False):
+        st.caption(
+            "Enter targets for the selected filters. Values remain available "
+            "during the current Streamlit session. Revenue targets are in Cr."
+        )
+        target_input_cols = st.columns(5)
+
+        with target_input_cols[0]:
+            revenue_target_cr = st.number_input(
+                "Revenue Target (Cr)",
+                min_value=0.0,
+                value=st.session_state.get(f"target_revenue_{fy}", 0.0),
+                step=0.10,
+                key=f"target_revenue_{fy}",
+            )
+        with target_input_cols[1]:
+            ftl_target_cr = st.number_input(
+                "FTL Target (Cr)",
+                min_value=0.0,
+                value=st.session_state.get(f"target_ftl_{fy}", 0.0),
+                step=0.10,
+                key=f"target_ftl_{fy}",
+            )
+        with target_input_cols[2]:
+            ltl_target_cr = st.number_input(
+                "LTL Target (Cr)",
+                min_value=0.0,
+                value=st.session_state.get(f"target_ltl_{fy}", 0.0),
+                step=0.10,
+                key=f"target_ltl_{fy}",
+            )
+        with target_input_cols[3]:
+            gr_target = st.number_input(
+                "GR Target",
+                min_value=0,
+                value=int(st.session_state.get(f"target_gr_{fy}", 0)),
+                step=100,
+                key=f"target_gr_{fy}",
+            )
+        with target_input_cols[4]:
+            weight_target_mt = st.number_input(
+                "Weight Target (MT)",
+                min_value=0.0,
+                value=float(st.session_state.get(f"target_weight_{fy}", 0.0)),
+                step=100.0,
+                key=f"target_weight_{fy}",
+            )
+
+    st.markdown(
+        "<div style='display:flex;align-items:center;gap:8px;margin:9px 0 6px 0;'>"
+        "<div style='font-size:13px;font-weight:900;color:#0f172a;'>Target vs Actual</div>"
+        "<div style='font-size:10px;color:#64748b;'>Based on current dashboard filters</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    target_cols = st.columns(5)
+    with target_cols[0]:
+        create_target_card(
+            "Revenue", revenue / 10000000, revenue_target_cr,
+            unit=" Cr", decimals=2, icon="💰",
+        )
+    with target_cols[1]:
+        create_target_card(
+            "FTL Revenue", ftl / 10000000, ftl_target_cr,
+            unit=" Cr", decimals=2, icon="🚛",
+        )
+    with target_cols[2]:
+        create_target_card(
+            "LTL Revenue", ltl / 10000000, ltl_target_cr,
+            unit=" Cr", decimals=2, icon="🚚",
+        )
+    with target_cols[3]:
+        create_target_card(
+            "Total GR", total_gr, gr_target,
+            unit="", decimals=0, icon="📦",
+        )
+    with target_cols[4]:
+        create_target_card(
+            "Weight", aweight, weight_target_mt,
+            unit=" MT", decimals=0, icon="⚓",
+        )
 
     # Small separator before charts
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
