@@ -460,7 +460,7 @@ with st.sidebar:
     st.markdown('<div class="sugam-footer">Sugam Dashboard · v1.0</div>', unsafe_allow_html=True)
 
 
-if menu == "🏠 Overview":
+if menu == "🏠 Revenue Overview":
     show_overview()
 
 elif menu == "📊 Comparison":
