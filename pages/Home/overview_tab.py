@@ -2217,6 +2217,253 @@ def show_overview():
         st.plotly_chart(fig_waterfall, use_container_width=True)
 
 
+    # =====================================================
+    # Top 10 Consignors | Current FY vs LY with YoY growth
+    # =====================================================
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    # Locate the consignor/customer column without hard-coding a single schema.
+    consignor_candidates = [
+        "consignor", "CONSIGNOR", "Consignor",
+        "consignorname", "CONSIGNORNAME", "ConsignorName",
+        "consignor_name", "CONSIGNOR_NAME",
+        "customer", "CUSTOMER", "Customer",
+        "customername", "CUSTOMERNAME", "CustomerName",
+        "partyname", "PARTYNAME", "PartyName",
+        "clientname", "CLIENTNAME", "ClientName",
+    ]
+
+    consignor_col = next((col for col in consignor_candidates if col in df.columns), None)
+
+    if consignor_col is None:
+        # Case-insensitive fallback for minor column-name variations.
+        normalized_cols = {
+            str(col).replace(" ", "").replace("_", "").casefold(): col
+            for col in df.columns
+        }
+        for candidate in [
+            "consignor", "consignorname", "customer", "customername",
+            "partyname", "clientname"
+        ]:
+            if candidate in normalized_cols:
+                consignor_col = normalized_cols[candidate]
+                break
+
+    if consignor_col is not None:
+        current_consignor = (
+            df.assign(
+                _consignor=df[consignor_col].fillna("Unknown").astype(str).str.strip()
+            )
+            .query("_consignor != ''")
+            .groupby("_consignor", dropna=False)["REVENUE"]
+            .sum()
+            .reset_index(name="Current Revenue")
+        )
+
+        if prev_df is not None and not prev_df.empty and consignor_col in prev_df.columns:
+            previous_consignor = (
+                prev_df.assign(
+                    _consignor=prev_df[consignor_col].fillna("Unknown").astype(str).str.strip()
+                )
+                .query("_consignor != ''")
+                .groupby("_consignor", dropna=False)["REVENUE"]
+                .sum()
+                .reset_index(name="Previous Revenue")
+            )
+        else:
+            previous_consignor = pd.DataFrame(
+                columns=["_consignor", "Previous Revenue"]
+            )
+
+        consignor_yoy = current_consignor.merge(
+            previous_consignor,
+            on="_consignor",
+            how="left",
+        ).fillna({"Previous Revenue": 0})
+
+        consignor_yoy["Current Revenue Cr"] = (
+            consignor_yoy["Current Revenue"] / 10000000
+        ).round(2)
+        consignor_yoy["Previous Revenue Cr"] = (
+            consignor_yoy["Previous Revenue"] / 10000000
+        ).round(2)
+        consignor_yoy["Growth %"] = consignor_yoy.apply(
+            lambda row: pct_growth(
+                row["Current Revenue"], row["Previous Revenue"]
+            ) if row["Previous Revenue"] > 0 else None,
+            axis=1,
+        )
+
+        consignor_yoy = (
+            consignor_yoy
+            .sort_values("Current Revenue", ascending=False)
+            .head(10)
+            .sort_values("Current Revenue", ascending=True)
+            .reset_index(drop=True)
+        )
+
+        consignor_yoy["Consignor Display"] = consignor_yoy["_consignor"].apply(
+            lambda value: value if len(value) <= 28 else value[:26] + "…"
+        )
+
+        with st.container(border=True):
+            title_col, metric_col = st.columns([3, 1])
+            with title_col:
+                st.markdown(
+                    "###### Top 10 Consignors | Current FY vs LY"
+                    "<div style='font-size:10px;color:#64748b;margin-top:-4px;'>"
+                    "Ranked by current-year revenue; growth is calculated against the same filtered period last year."
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+            with metric_col:
+                total_top10_current = consignor_yoy["Current Revenue Cr"].sum()
+                total_top10_previous = consignor_yoy["Previous Revenue Cr"].sum()
+                total_top10_growth = pct_growth(
+                    total_top10_current, total_top10_previous
+                ) if total_top10_previous > 0 else 0
+                total_growth_color = "#166534" if total_top10_growth >= 0 else "#dc2626"
+                st.markdown(
+                    f"<div style='text-align:right;font-size:10px;color:#64748b;'>Top 10 Revenue</div>"
+                    f"<div style='text-align:right;font-size:16px;font-weight:900;color:#0f172a;'>"
+                    f"₹{total_top10_current:.2f} Cr</div>"
+                    f"<div style='text-align:right;font-size:10px;font-weight:800;color:{total_growth_color};'>"
+                    f"{growth_label(total_top10_growth)} vs LY</div>",
+                    unsafe_allow_html=True,
+                )
+
+            fig_consignor = go.Figure()
+
+            fig_consignor.add_trace(
+                go.Bar(
+                    y=consignor_yoy["Consignor Display"],
+                    x=consignor_yoy["Previous Revenue Cr"],
+                    name=f"LY ({prev_fy})",
+                    orientation="h",
+                    marker=dict(
+                        color="#dbe4f0",
+                        line=dict(color="#b8c7dc", width=1),
+                    ),
+                    text=consignor_yoy["Previous Revenue Cr"],
+                    texttemplate="₹%{text:.2f}",
+                    textposition="inside",
+                    insidetextanchor="middle",
+                    textfont=dict(size=9, color="#475569"),
+                    hovertemplate=(
+                        "<b>%{y}</b><br>LY Revenue: ₹%{x:.2f} Cr<extra></extra>"
+                    ),
+                )
+            )
+
+            growth_customdata = consignor_yoy[["Growth %", "_consignor"]].to_numpy()
+            fig_consignor.add_trace(
+                go.Bar(
+                    y=consignor_yoy["Consignor Display"],
+                    x=consignor_yoy["Current Revenue Cr"],
+                    name=f"Current ({fy})",
+                    orientation="h",
+                    marker=dict(
+                        color="#2563eb",
+                        line=dict(color="#1d4ed8", width=1),
+                    ),
+                    customdata=growth_customdata,
+                    text=consignor_yoy["Current Revenue Cr"],
+                    texttemplate="₹%{text:.2f}",
+                    textposition="outside",
+                    textfont=dict(size=10, color="#0f172a", family="Arial Black"),
+                    cliponaxis=False,
+                    hovertemplate=(
+                        "<b>%{customdata[1]}</b>"
+                        "<br>Current Revenue: ₹%{x:.2f} Cr"
+                        "<br>YoY Growth: %{customdata[0]:.1f}%<extra></extra>"
+                    ),
+                )
+            )
+
+            max_consignor_revenue = max(
+                consignor_yoy["Current Revenue Cr"].max(),
+                consignor_yoy["Previous Revenue Cr"].max(),
+                1,
+            )
+
+            for _, row in consignor_yoy.iterrows():
+                if pd.notna(row["Growth %"]):
+                    growth_color = "#15803d" if row["Growth %"] >= 0 else "#dc2626"
+                    growth_arrow = "▲" if row["Growth %"] >= 0 else "▼"
+                    fig_consignor.add_annotation(
+                        x=max(
+                            row["Current Revenue Cr"],
+                            row["Previous Revenue Cr"],
+                        ) + max_consignor_revenue * 0.12,
+                        y=row["Consignor Display"],
+                        text=f"<b>{growth_arrow} {abs(row['Growth %']):.1f}%</b>",
+                        showarrow=False,
+                        xanchor="left",
+                        font=dict(size=10, color=growth_color),
+                        bgcolor="#ffffff",
+                        bordercolor="#e2e8f0",
+                        borderwidth=1,
+                        borderpad=3,
+                    )
+                else:
+                    fig_consignor.add_annotation(
+                        x=max(
+                            row["Current Revenue Cr"],
+                            row["Previous Revenue Cr"],
+                        ) + max_consignor_revenue * 0.12,
+                        y=row["Consignor Display"],
+                        text="<b>New</b>",
+                        showarrow=False,
+                        xanchor="left",
+                        font=dict(size=9, color="#7c3aed"),
+                        bgcolor="#f5f3ff",
+                        bordercolor="#ddd6fe",
+                        borderwidth=1,
+                        borderpad=3,
+                    )
+
+            consignor_chart_height = max(360, 42 * len(consignor_yoy) + 105)
+            fig_consignor.update_layout(
+                barmode="group",
+                bargap=0.28,
+                bargroupgap=0.08,
+                height=consignor_chart_height,
+                margin=dict(l=8, r=105, t=35, b=28),
+                plot_bgcolor="#f8fafc",
+                paper_bgcolor="rgba(0,0,0,0)",
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    x=0,
+                    font=dict(size=10),
+                ),
+                xaxis_title="Revenue (Cr)",
+                xaxis_range=[0, max_consignor_revenue * 1.52],
+                hoverlabel=dict(bgcolor="white", font_size=11),
+            )
+            apply_3d_chart_layout(
+                fig_consignor,
+                height=consignor_chart_height,
+                margin=dict(l=8, r=105, t=35, b=28),
+            )
+            fig_consignor.update_xaxes(
+                showgrid=False, showline=False, zeroline=False, tickfont=dict(size=10)
+            )
+            fig_consignor.update_yaxes(
+                showgrid=False, showline=False, zeroline=False, tickfont=dict(size=10)
+            )
+
+            st.plotly_chart(fig_consignor, use_container_width=True)
+    else:
+        with st.container(border=True):
+            st.info(
+                "Top 10 Consignors visual could not be displayed because a consignor/customer "
+                "column was not found in the booking dataset. Expected names include "
+                "CONSIGNOR, CONSIGNORNAME, CUSTOMERNAME, or PARTYNAME."
+            )
+
+
     # Small separator before branch analysis
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
