@@ -54,7 +54,7 @@ def _inject_overview_css():
                 margin-bottom: 0.35rem !important;
             }
 
-            /* Compact 3D period buttons used in Revenue and Weight trends */
+            /* KPI-style period selector: Daily / Weekly / Monthly / Quarterly */
             div[data-testid="stSegmentedControl"] {
                 display: flex !important;
                 justify-content: flex-end !important;
@@ -63,79 +63,120 @@ def _inject_overview_css():
 
             div[data-testid="stSegmentedControl"] > div,
             div[data-testid="stSegmentedControl"] [role="radiogroup"] {
-                display: inline-flex !important;
-                flex: 0 0 auto !important;
-                width: fit-content !important;
-                min-width: 0 !important;
-                gap: 3px !important;
-                padding: 3px !important;
-                border: 1px solid #b8c4d4 !important;
-                border-radius: 8px !important;
-                background: linear-gradient(145deg, #eef3f8, #d8e0ea) !important;
-                box-shadow:
-                    inset 1px 1px 1px rgba(255,255,255,.95),
-                    inset -1px -1px 2px rgba(71,85,105,.18),
-                    0 3px 0 #aeb9c8,
-                    0 5px 8px rgba(15,23,42,.13) !important;
+                display: grid !important;
+                grid-template-columns: repeat(4, minmax(72px, 1fr)) !important;
+                gap: 8px !important;
+                width: min(100%, 390px) !important;
+                padding: 0 !important;
+                border: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
             }
 
             div[data-testid="stSegmentedControl"] label,
             div[data-testid="stSegmentedControl"] button {
-                flex: 0 0 auto !important;
-                min-width: auto !important;
-                width: auto !important;
-                min-height: 25px !important;
-                height: 25px !important;
-                padding: 2px 8px !important;
+                position: relative !important;
+                overflow: hidden !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 72px !important;
+                min-height: 46px !important;
+                height: 46px !important;
+                padding: 8px 10px !important;
                 margin: 0 !important;
-                border: 1px solid #b9c5d4 !important;
-                border-radius: 5px !important;
-                background: linear-gradient(145deg, #ffffff 0%, #edf1f6 55%, #d7dee8 100%) !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 12px !important;
+                background: linear-gradient(145deg, #ffffff 0%, #f8fafc 48%, #e7edf5 100%) !important;
                 box-shadow:
-                    0 2px 0 #aab5c4,
-                    0 3px 4px rgba(15,23,42,.14),
-                    inset 1px 1px 0 rgba(255,255,255,.95) !important;
+                    0 5px 0 #c2ccd9,
+                    0 8px 13px rgba(15,23,42,.16),
+                    inset 1px 1px 0 rgba(255,255,255,.98),
+                    inset -1px -1px 0 rgba(100,116,139,.16) !important;
                 color: #334155 !important;
-                font-size: 10px !important;
-                font-weight: 700 !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
                 line-height: 1 !important;
+                letter-spacing: .15px !important;
                 white-space: nowrap !important;
-                transition: transform .10s ease, box-shadow .10s ease, background .10s ease;
+                transform: translateY(-2px) !important;
+                transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease !important;
+            }
+
+            div[data-testid="stSegmentedControl"] label::before,
+            div[data-testid="stSegmentedControl"] button::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                height: 4px;
+                border-radius: 12px 12px 0 0;
+                background: linear-gradient(90deg, #60a5fa, #2563eb);
+                box-shadow: 0 2px 4px rgba(37,99,235,.22);
+            }
+
+            div[data-testid="stSegmentedControl"] label::after,
+            div[data-testid="stSegmentedControl"] button::after {
+                content: "";
+                position: absolute;
+                inset: 1px 1px auto 1px;
+                height: 42%;
+                border-radius: 11px 11px 50% 50%;
+                background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,0));
+                pointer-events: none;
             }
 
             div[data-testid="stSegmentedControl"] label:hover,
             div[data-testid="stSegmentedControl"] button:hover {
-                transform: translateY(-1px);
-                border-color: #7da8e8 !important;
-                background: linear-gradient(145deg, #ffffff, #dbeafe) !important;
+                transform: translateY(-4px) !important;
+                border-color: #93b7ef !important;
                 box-shadow:
-                    0 3px 0 #86a9d8,
-                    0 5px 7px rgba(15,23,42,.15),
-                    inset 1px 1px 0 rgba(255,255,255,.95) !important;
+                    0 7px 0 #aebed2,
+                    0 12px 17px rgba(15,23,42,.20),
+                    inset 1px 1px 0 rgba(255,255,255,.98),
+                    inset -1px -1px 0 rgba(100,116,139,.18) !important;
             }
 
-            /* Pressed/selected 3D state */
+            /* Selected period looks like an active blue KPI card */
             div[data-testid="stSegmentedControl"] label:has(input:checked),
             div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
                 color: #ffffff !important;
                 border-color: #1749a8 !important;
-                background: linear-gradient(145deg, #4285ef 0%, #2563eb 55%, #1749a8 100%) !important;
-                transform: translateY(2px) !important;
+                background: linear-gradient(145deg, #4f8ff7 0%, #2563eb 55%, #1749a8 100%) !important;
+                transform: translateY(1px) !important;
                 box-shadow:
-                    0 0 0 #1749a8,
-                    inset 2px 2px 4px rgba(15,23,42,.28),
+                    0 2px 0 #123d91,
+                    0 5px 9px rgba(30,64,175,.28),
+                    inset 2px 2px 5px rgba(15,23,42,.28),
                     inset -1px -1px 2px rgba(191,219,254,.35) !important;
+            }
+
+            div[data-testid="stSegmentedControl"] label:has(input:checked)::before,
+            div[data-testid="stSegmentedControl"] button[aria-pressed="true"]::before {
+                background: linear-gradient(90deg, #bfdbfe, #ffffff) !important;
+                opacity: .9;
             }
 
             div[data-testid="stSegmentedControl"] label p,
             div[data-testid="stSegmentedControl"] button p,
             div[data-testid="stSegmentedControl"] label span,
             div[data-testid="stSegmentedControl"] button span {
+                position: relative !important;
+                z-index: 2 !important;
                 margin: 0 !important;
-                font-size: 10px !important;
-                font-weight: 700 !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
                 line-height: 1 !important;
                 color: inherit !important;
+            }
+
+            @media (max-width: 900px) {
+                div[data-testid="stSegmentedControl"] > div,
+                div[data-testid="stSegmentedControl"] [role="radiogroup"] {
+                    grid-template-columns: repeat(2, minmax(78px, 1fr)) !important;
+                    width: 100% !important;
+                }
             }
 
             /* Strong 3D KPI cards */
