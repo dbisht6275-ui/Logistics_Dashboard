@@ -54,15 +54,85 @@ def _inject_overview_css():
                 margin-bottom: 0.35rem !important;
             }
 
-            /* Compact segmented control */
+            /* Compact 3D segmented control: Daily / Weekly / Monthly / Quarterly */
             div[data-testid="stSegmentedControl"] {
                 display: flex;
                 justify-content: flex-end;
             }
 
-            div[data-testid="stSegmentedControl"] label {
-                padding: 4px 10px !important;
-                font-size: 12px !important;
+            div[data-testid="stSegmentedControl"] > div {
+                gap: 3px !important;
+                padding: 3px !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 9px !important;
+                background: linear-gradient(145deg, #f8fafc, #e2e8f0) !important;
+                box-shadow:
+                    inset 1px 1px 2px rgba(255,255,255,.95),
+                    inset -1px -1px 2px rgba(100,116,139,.18),
+                    0 2px 4px rgba(15,23,42,.12) !important;
+            }
+
+            div[data-testid="stSegmentedControl"] label,
+            div[data-testid="stSegmentedControl"] button {
+                min-height: 26px !important;
+                height: 26px !important;
+                padding: 2px 8px !important;
+                margin: 0 !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                background: linear-gradient(145deg, #ffffff, #e8edf4) !important;
+                box-shadow:
+                    1px 1px 3px rgba(15,23,42,.17),
+                    -1px -1px 2px rgba(255,255,255,.95),
+                    inset 0 1px 0 rgba(255,255,255,.85) !important;
+                color: #475569 !important;
+                font-size: 10px !important;
+                font-weight: 700 !important;
+                line-height: 1 !important;
+                transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+            }
+
+            div[data-testid="stSegmentedControl"] label:hover,
+            div[data-testid="stSegmentedControl"] button:hover {
+                transform: translateY(-1px);
+                background: linear-gradient(145deg, #ffffff, #dbeafe) !important;
+                border-color: #93c5fd !important;
+                box-shadow:
+                    0 3px 5px rgba(15,23,42,.16),
+                    inset 0 1px 0 rgba(255,255,255,.95) !important;
+            }
+
+            /* Selected state for Streamlit versions using radio inputs */
+            div[data-testid="stSegmentedControl"] label:has(input:checked) {
+                color: #ffffff !important;
+                border-color: #1d4ed8 !important;
+                background: linear-gradient(145deg, #3b82f6, #1d4ed8) !important;
+                transform: translateY(1px);
+                box-shadow:
+                    inset 2px 2px 4px rgba(15,23,42,.24),
+                    inset -1px -1px 2px rgba(147,197,253,.30),
+                    0 1px 2px rgba(15,23,42,.12) !important;
+            }
+
+            /* Selected state for Streamlit versions using aria-pressed buttons */
+            div[data-testid="stSegmentedControl"] button[aria-pressed="true"] {
+                color: #ffffff !important;
+                border-color: #1d4ed8 !important;
+                background: linear-gradient(145deg, #3b82f6, #1d4ed8) !important;
+                transform: translateY(1px);
+                box-shadow:
+                    inset 2px 2px 4px rgba(15,23,42,.24),
+                    inset -1px -1px 2px rgba(147,197,253,.30),
+                    0 1px 2px rgba(15,23,42,.12) !important;
+            }
+
+            div[data-testid="stSegmentedControl"] label p,
+            div[data-testid="stSegmentedControl"] button p,
+            div[data-testid="stSegmentedControl"] label span,
+            div[data-testid="stSegmentedControl"] button span {
+                font-size: 10px !important;
+                font-weight: 700 !important;
+                line-height: 1 !important;
             }
 
             /* Reduce dataframe/table vertical spacing */
