@@ -512,7 +512,7 @@ def show_overview():
     ) = st.columns(8)
 
     with filter_col1:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>View Type</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>View Type</div>", unsafe_allow_html=True)
         view_type = st.selectbox("View Type", ["Origin", "Destination"], label_visibility="collapsed")
 
     with filter_col2:
