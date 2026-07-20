@@ -241,6 +241,114 @@ def _inject_overview_css():
                 transform: translateY(2px);
                 box-shadow: 0 1px 0 #cbd5e1, 0 3px 7px rgba(15,23,42,.12) !important;
             }
+
+
+            /* Executive dashboard refinement */
+            :root {
+                --dash-navy: #102a43;
+                --dash-blue: #2563eb;
+                --dash-teal: #0f766e;
+                --dash-muted: #64748b;
+                --dash-border: #dbe4ef;
+            }
+
+            .executive-header {
+                position: relative;
+                overflow: hidden;
+                margin: 0 0 10px 0;
+                padding: 13px 16px 12px 16px;
+                border: 1px solid #d8e3f0;
+                border-radius: 15px;
+                background: linear-gradient(105deg, #f8fbff 0%, #edf5ff 58%, #f6fbff 100%);
+                box-shadow: 0 8px 18px rgba(15, 42, 67, .08), inset 0 1px 0 #ffffff;
+            }
+            .executive-header:before {
+                content: "";
+                position: absolute;
+                left: 0; top: 0; bottom: 0;
+                width: 5px;
+                background: linear-gradient(180deg, #2563eb, #0f766e);
+            }
+            .executive-title {
+                color: var(--dash-navy);
+                font-size: 21px;
+                font-weight: 850;
+                letter-spacing: -.3px;
+                margin: 0;
+            }
+            .executive-subtitle {
+                color: var(--dash-muted);
+                font-size: 11px;
+                margin-top: 2px;
+            }
+            .filter-summary {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin: 5px 0 10px 0;
+            }
+            .filter-chip {
+                display: inline-flex;
+                align-items: center;
+                padding: 3px 8px;
+                border: 1px solid #cbdcf3;
+                border-radius: 999px;
+                background: #f5f9ff;
+                color: #31557d;
+                font-size: 9px;
+                font-weight: 750;
+                box-shadow: inset 0 1px 0 #ffffff;
+            }
+
+            /* Cleaner card hierarchy: subtle depth, no oversized floating effect */
+            div[data-testid="stVerticalBlockBorderWrapper"] {
+                border-radius: 14px !important;
+                border-color: #dce5ef !important;
+                background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+                box-shadow: 0 7px 18px rgba(15,42,67,.075), inset 0 1px 0 #ffffff !important;
+            }
+            div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 10px 22px rgba(15,42,67,.10), inset 0 1px 0 #ffffff !important;
+            }
+
+            /* Refined chart mode selector */
+            div[data-testid="stSegmentedControl"] > div,
+            div[data-testid="stSegmentedControl"] [role="radiogroup"] {
+                background: #edf2f7 !important;
+                border-color: #c9d5e3 !important;
+                box-shadow: inset 1px 1px 2px rgba(15,23,42,.10), 0 3px 5px rgba(15,23,42,.10) !important;
+            }
+            div[data-testid="stSegmentedControl"] label,
+            div[data-testid="stSegmentedControl"] button {
+                border-radius: 6px !important;
+                min-height: 24px !important;
+                height: 24px !important;
+                padding: 2px 7px !important;
+                background: linear-gradient(180deg,#ffffff,#e9eef5) !important;
+                box-shadow: 0 2px 0 #aebac8, inset 0 1px 0 #ffffff !important;
+            }
+
+            /* Compact filter strip */
+            div[data-testid="stSelectbox"] {
+                padding: 3px 4px 5px 4px;
+                border-radius: 9px;
+                box-shadow: none;
+                background: #ffffff;
+            }
+            div[data-baseweb="select"] > div {
+                min-height: 30px !important;
+                background: #ffffff !important;
+                box-shadow: inset 0 1px 2px rgba(15,23,42,.06) !important;
+            }
+
+            /* Softer dataframe presentation */
+            [data-testid="stDataFrame"] {
+                border: 1px solid #e2eaf3;
+                box-shadow: none !important;
+                background: #fbfdff;
+            }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -648,19 +756,32 @@ def add_revenue_forecast(yoy_df, trend_type, selected_quarter="All", selected_mo
 
 
 def create_card(title, value, color, icon, growth_value=0.0):
-    """Compact KPI card used in the top KPI row. growth_value is auto-calculated % vs LY."""
-    growth_color = "#166534" if growth_value >= 0 else "#dc2626"
+    """Executive KPI card with compact hierarchy and a growth pill."""
+    positive = growth_value >= 0
+    growth_color = "#15803d" if positive else "#dc2626"
+    growth_bg = "#ecfdf3" if positive else "#fff1f2"
+    growth_border = "#bbf7d0" if positive else "#fecdd3"
     growth_text = growth_label(growth_value)
 
-    html = f"""<div style="background:linear-gradient(145deg,#ffffff 0%,#f8fafc 62%,#e5edf7 100%);padding:9px;border-radius:14px;border:1px solid #dbe3ee;border-left:5px solid {color};box-shadow:0 8px 0 #d6deea,0 13px 22px rgba(15,23,42,.16),inset 1px 1px 0 rgba(255,255,255,.95);min-height:72px;transform:translateY(-3px);">
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<div style="color:{color};font-size:11px;font-weight:800;">{title}</div>
-<div style="font-size:18px;">{icon}</div>
-</div>
-<div style="font-size:17px;font-weight:900;color:#0f172a;margin-top:1px;">{value}</div>
-<div style="font-size:11px;color:{growth_color};font-weight:700;margin-top:1px;">{growth_text} vs LY</div>
-
-</div>"""
+    html = f"""
+    <div style="background:#ffffff;padding:10px 11px;border-radius:13px;
+                border:1px solid #dce5ef;border-top:3px solid {color};
+                box-shadow:0 6px 14px rgba(15,42,67,.08),inset 0 1px 0 #ffffff;
+                min-height:77px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <div style="color:#486581;font-size:10px;font-weight:800;letter-spacing:.15px;">{title}</div>
+            <div style="width:25px;height:25px;border-radius:8px;background:{color}12;color:{color};
+                        display:flex;align-items:center;justify-content:center;font-size:15px;">{icon}</div>
+        </div>
+        <div style="font-size:18px;font-weight:900;color:#102a43;margin-top:3px;line-height:1.1;">{value}</div>
+        <div style="margin-top:5px;">
+            <span style="display:inline-block;padding:2px 6px;border-radius:999px;background:{growth_bg};
+                         border:1px solid {growth_border};color:{growth_color};font-size:9px;font-weight:800;">
+                {growth_text} vs LY
+            </span>
+        </div>
+    </div>
+    """
     st.markdown(html, unsafe_allow_html=True)
 
 
@@ -714,19 +835,24 @@ def create_target_card(title, actual, target, unit="", decimals=2, icon="🎯"):
 
 
 def mini_rank_card(rank, name, value, max_value, color):
-    """Compact ranking row for top/bottom branch lists."""
+    """Compact ranked branch row with medal treatment and contribution bar."""
     pct = min((value / max_value * 100), 100) if max_value else 0
+    medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, str(rank))
 
-    html = f"""<div style="margin-bottom:6px;">
-<div style="display:flex;align-items:center;gap:6px;">
-<div style="background:#f1f5f9;border-radius:4px;padding:2px 6px;font-size:10px;color:#64748b;">{rank}</div>
-<div style="font-size:10px;font-weight:800;color:#0f2747;min-width:95px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{name}</div>
-<div style="flex:1;height:8px;background:linear-gradient(180deg,#d8e0ea,#f8fafc);border-radius:20px;overflow:hidden;box-shadow:inset 1px 2px 3px rgba(15,23,42,.18);">
-<div style="width:{pct}%;height:8px;background:linear-gradient(180deg,{color},color-mix(in srgb,{color} 68%,black));border-radius:20px;box-shadow:0 2px 4px rgba(15,23,42,.25),inset 0 1px 0 rgba(255,255,255,.35);"></div>
-</div>
-<div style="font-size:10px;font-weight:800;color:#0f2747;min-width:45px;text-align:right;">₹{value:.2f}</div>
-</div>
-</div>"""
+    html = f"""
+    <div style="margin-bottom:7px;padding:5px 6px;border:1px solid #e5ebf2;border-radius:9px;background:#fbfdff;">
+        <div style="display:flex;align-items:center;gap:7px;">
+            <div style="width:22px;text-align:center;font-size:12px;font-weight:850;color:#486581;">{medal}</div>
+            <div style="font-size:10px;font-weight:800;color:#243b53;min-width:102px;max-width:102px;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{name}</div>
+            <div style="flex:1;height:8px;background:#e8eef5;border-radius:999px;overflow:hidden;
+                        box-shadow:inset 0 1px 2px rgba(15,23,42,.12);">
+                <div style="width:{pct}%;height:8px;background:{color};border-radius:999px;"></div>
+            </div>
+            <div style="font-size:10px;font-weight:900;color:#102a43;min-width:53px;text-align:right;">₹{value:.2f}</div>
+        </div>
+    </div>
+    """
     st.markdown(html, unsafe_allow_html=True)
 
 
@@ -735,13 +861,12 @@ def show_overview():
 
     _inject_overview_css()
 
-    # Direct heading placement, matching the Outstanding page.
     st.markdown(
         """
-        <h3 style="margin:0;padding:0;">Revenue Overview</h3>
-        <p style="color:#64748b;font-size:12px;margin:0 0 8px 0;">
-            Revenue, shipment and branch performance overview
-        </p>
+        <div class="executive-header">
+            <div class="executive-title">Revenue Overview</div>
+            <div class="executive-subtitle">Executive view of revenue, shipments, load mix, geography and branch performance</div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
@@ -910,6 +1035,18 @@ def show_overview():
     if df.empty:
         st.warning("No data found for selected filters")
         return
+
+    active_filter_items = [
+        ("FY", fy), ("View", view_type), ("Zone", zone), ("Circle", circle),
+        ("Branch", branch), ("Quarter", quarter), ("Month", month), ("Load", loadtype),
+    ]
+    active_filter_html = "".join(
+        f'<span class="filter-chip">{label}: {value}</span>'
+        for label, value in active_filter_items
+        if value not in (None, "", "All")
+    )
+    if active_filter_html:
+        st.markdown(f'<div class="filter-summary">{active_filter_html}</div>', unsafe_allow_html=True)
 
     # =========================
     # Apply the same zone/circle/branch/quarter/month/loadtype filters to the LY data
@@ -1374,9 +1511,9 @@ def show_overview():
                     go.Pie(
                         labels=["FTL", "LTL"],
                         values=[ftl, ltl],
-                        hole=0.58,
+                        hole=0.64,
                         textinfo="percent+label",
-                        pull=[0.035, 0.035],
+                        pull=[0.018, 0.018],
                         rotation=135,
                         direction="clockwise",
                         marker=dict(
@@ -1401,13 +1538,22 @@ def show_overview():
                     )
                 ],
                 height=250,
-                margin=dict(l=4, r=4, t=10, b=4),
+                margin=dict(l=2, r=2, t=6, b=2),
                 paper_bgcolor="rgba(0,0,0,0)",
                 showlegend=False,
             )
             fig_load.update_traces(sort=False)
 
             st.plotly_chart(fig_load, use_container_width=True)
+            st.markdown(
+                f"""
+                <div style="display:flex;justify-content:center;gap:10px;margin-top:-10px;margin-bottom:2px;">
+                    <span style="font-size:9px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:3px 7px;">🚛 FTL ₹{ftl/10000000:.2f} Cr</span>
+                    <span style="font-size:9px;font-weight:800;color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4;border-radius:999px;padding:3px 7px;">🚚 LTL ₹{ltl/10000000:.2f} Cr</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
@@ -1627,7 +1773,11 @@ def show_overview():
                             zone_colors.get(zone_name, "#2563eb")
                             for zone_name in zone_df_sorted["zone"].tolist()
                         ],
-                        line=dict(color="#334155", width=1.1),
+                        opacity=[
+                            1.0 if value == zone_df_sorted["Revenue Cr"].max() else 0.76
+                            for value in zone_df_sorted["Revenue Cr"].tolist()
+                        ],
+                        line=dict(color="#ffffff", width=1.2),
                     ),
                     customdata=zone_df_sorted[["Percentage"]].to_numpy(),
                     texttemplate="₹%{x:.2f} Cr<br>(%{customdata[0]:.1f}%)",
@@ -1888,21 +2038,27 @@ def show_overview():
 
     with st.container(border=True):
         st.markdown(
-            "<div style='font-size:13px;font-weight:900;color:#0f2747;margin-bottom:7px;'>KEY INSIGHTS</div>",
+            "<div style='font-size:13px;font-weight:900;color:#102a43;margin-bottom:8px;'>MANAGEMENT INSIGHTS</div>",
             unsafe_allow_html=True,
         )
-        for message in key_insight_messages:
-            st.markdown(
-                f"""
-                <div style="display:flex;align-items:flex-start;gap:9px;margin:7px 0;">
-                    <div style="width:18px;height:18px;border-radius:50%;background:#22c55e;color:white;
-                                display:flex;align-items:center;justify-content:center;font-size:11px;
-                                font-weight:900;flex:0 0 18px;box-shadow:0 1px 3px rgba(34,197,94,.25);">✓</div>
-                    <div style="font-size:11px;line-height:1.45;color:#1e293b;font-weight:650;">{message}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        insight_icons = ["📈", "🚛", "🎯", "🌐", "⚠️"]
+        insight_titles = ["Revenue movement", "Load mix", "Revenue concentration", "Zone watch", "Branch watch"]
+        insight_cols = st.columns(5)
+        for idx, (message, icon, title) in enumerate(zip(key_insight_messages, insight_icons, insight_titles)):
+            with insight_cols[idx]:
+                st.markdown(
+                    f"""
+                    <div style="height:108px;padding:9px;border:1px solid #dfe8f2;border-radius:11px;
+                                background:linear-gradient(180deg,#ffffff,#f7fbff);box-shadow:0 4px 10px rgba(15,42,67,.06);">
+                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+                            <span style="font-size:14px;">{icon}</span>
+                            <span style="font-size:9px;font-weight:900;color:#486581;text-transform:uppercase;letter-spacing:.25px;">{title}</span>
+                        </div>
+                        <div style="font-size:10px;line-height:1.38;color:#243b53;font-weight:650;">{message}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
     # =====================================================
     # Management visual: Revenue Waterfall
