@@ -1356,29 +1356,39 @@ def show_overview():
             # Sort for display
             zone_df_sorted = zone_df.sort_values("Revenue Cr", ascending=True).reset_index(drop=True)
 
-            fig_zone = px.bar(
-                zone_df_sorted,
-                y="zone_short",
-                x="Revenue Cr",
-                orientation="h",
-                color="zone",
-                color_discrete_map=zone_colors
+            # Use a direct go.Bar trace so every label is generated from the
+            # same row as its bar. This avoids Plotly/Pandas text alignment issues.
+            fig_zone = go.Figure(
+                go.Bar(
+                    y=zone_df_sorted["zone_short"].tolist(),
+                    x=zone_df_sorted["Revenue Cr"].tolist(),
+                    orientation="h",
+                    marker_color=[
+                        zone_colors.get(zone_name, "#2563eb")
+                        for zone_name in zone_df_sorted["zone"].tolist()
+                    ],
+                    customdata=zone_df_sorted[["Percentage"]].to_numpy(),
+                    texttemplate="₹%{x:.2f} Cr<br>(%{customdata[0]:.1f}%)",
+                    textposition="outside",
+                    textfont=dict(size=10, color="#475569"),
+                    cliponaxis=False,
+                    hovertemplate=(
+                        "<b>%{y}</b><br>Revenue: ₹%{x:.2f} Cr"
+                        "<br>Contribution: %{customdata[0]:.1f}%<extra></extra>"
+                    ),
+                )
             )
 
-            fig_zone.update_traces(
-                text=zone_df_sorted["Text"],
-                texttemplate="%{text}",
-                textposition="outside"
-            )
-
-            zone_max = zone_df["Revenue Cr"].max() if not zone_df.empty else 1
+            zone_max = zone_df_sorted["Revenue Cr"].max() if not zone_df_sorted.empty else 1
             fig_zone.update_layout(
                 height=240,
-                margin=dict(l=2, r=35, t=2, b=2),
-                xaxis_range=[0, zone_max * 1.15],
+                margin=dict(l=2, r=80, t=2, b=2),
+                xaxis_range=[0, zone_max * 1.30],
                 xaxis_title="Revenue (Cr)",
                 yaxis_title="",
-                showlegend=False
+                showlegend=False,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
             )
 
             st.plotly_chart(fig_zone, use_container_width=True)
