@@ -1575,13 +1575,8 @@ def show_overview():
                 selected_month=month
             )
 
-            # Revenue trend grouped bar chart — LY vs Current FY vs Forecast
+            # Revenue trend in the same visual format as Weight Trend
             fig_yoy = go.Figure()
-
-            period_count = len(yoy_df)
-            show_bar_values = trend_type in ["Monthly", "Quarterly"] or period_count <= 12
-            # Monthly values are added as annotations below so they always remain visible.
-            trace_bar_values = show_bar_values and trend_type != "Monthly"
 
             fig_yoy.add_trace(
                 go.Bar(
@@ -1589,8 +1584,8 @@ def show_overview():
                     y=yoy_df["Prev Revenue Cr"],
                     name=f"LY ({prev_fy})",
                     marker=dict(color="#cbd5e1", line=dict(color="#94a3b8", width=1.3)),
-                    text=yoy_df["Prev Revenue Cr"] if trace_bar_values else None,
-                    texttemplate="%{text:.2f}" if trace_bar_values else None,
+                    text=yoy_df["Prev Revenue Cr"],
+                    texttemplate="%{text:.2f}",
                     textposition="outside",
                     textfont=dict(size=9, color="#64748b"),
                     cliponaxis=False,
@@ -1604,8 +1599,8 @@ def show_overview():
                     y=yoy_df["Revenue Cr"],
                     name=f"Current ({fy})",
                     marker=dict(color="#2563eb", line=dict(color="#1e3a8a", width=1.3)),
-                    text=yoy_df["Revenue Cr"] if trace_bar_values else None,
-                    texttemplate="%{text:.2f}" if trace_bar_values else None,
+                    text=yoy_df["Revenue Cr"],
+                    texttemplate="%{text:.2f}",
                     textposition="outside",
                     textfont=dict(size=9, color="#2563eb"),
                     cliponaxis=False,
@@ -1613,9 +1608,7 @@ def show_overview():
                 )
             )
 
-            # Forecast bar only for the current ongoing month.
             forecast_df = yoy_df[yoy_df["Forecast Revenue Cr"].notna()].copy()
-
             if not forecast_df.empty:
                 fig_yoy.add_trace(
                     go.Bar(
@@ -1623,8 +1616,8 @@ def show_overview():
                         y=forecast_df["Forecast Revenue Cr"],
                         name="Forecast",
                         marker=dict(color="#f97316", line=dict(color="#c2410c", width=1.3)),
-                        text=forecast_df["Forecast Revenue Cr"] if trace_bar_values else None,
-                        texttemplate="%{text:.2f}" if trace_bar_values else None,
+                        text=forecast_df["Forecast Revenue Cr"],
+                        texttemplate="%{text:.2f}",
                         textposition="outside",
                         textfont=dict(size=9, color="#f97316"),
                         cliponaxis=False,
@@ -1632,9 +1625,6 @@ def show_overview():
                     )
                 )
 
-            # =====================================================
-            # Responsive formatting for Daily / Weekly / Monthly / Quarterly
-            # =====================================================
             yoy_max = pd.concat(
                 [
                     pd.to_numeric(yoy_df["Revenue Cr"], errors="coerce"),
@@ -1645,182 +1635,50 @@ def show_overview():
             ).max()
             yoy_max = yoy_max if pd.notna(yoy_max) and yoy_max > 0 else 1
 
-            if trend_type == "Daily":
-                chart_height = 360
-            elif trend_type == "Weekly":
-                chart_height = 390
-            else:
-                chart_height = 310
-
-            if period_count <= 8:
-                annotation_font_size = 11
-                growth_gap = 0.15
-            elif period_count <= 16:
-                annotation_font_size = 9
-                growth_gap = 0.13
-            else:
-                annotation_font_size = 8
-                growth_gap = 0.11
-
-            show_annotations = (
-                trend_type in ["Monthly", "Quarterly"]
-                or period_count <= 16
-            )
-
-            # In Monthly view, draw every bar value with annotations just like the
-            # Monthly Weight Trend. This avoids Plotly hiding outside text when bars
-            # are grouped or when the chart is resized.
-            if trend_type == "Monthly":
-                has_forecast = not forecast_df.empty
+            show_revenue_annotations = len(yoy_df) <= 40
+            if show_revenue_annotations:
                 for _, r in yoy_df.iterrows():
-                    prev_value = r.get("Prev Revenue Cr")
-                    current_value = r.get("Revenue Cr")
-                    forecast_value = r.get("Forecast Revenue Cr")
-
-                    if pd.notna(prev_value):
-                        fig_yoy.add_annotation(
-                            x=r["Period"], y=prev_value + (yoy_max * 0.025),
-                            text=f"{prev_value:.2f}", showarrow=False,
-                            xshift=-22 if has_forecast else -14, yanchor="bottom",
-                            font=dict(size=9, color="#64748b"),
-                        )
-
-                    if pd.notna(current_value):
-                        fig_yoy.add_annotation(
-                            x=r["Period"], y=current_value + (yoy_max * 0.025),
-                            text=f"{current_value:.2f}", showarrow=False,
-                            xshift=0 if has_forecast else 14, yanchor="bottom",
-                            font=dict(size=9, color="#2563eb"),
-                        )
-
-                    if pd.notna(forecast_value):
-                        fig_yoy.add_annotation(
-                            x=r["Period"], y=forecast_value + (yoy_max * 0.025),
-                            text=f"{forecast_value:.2f}", showarrow=False,
-                            xshift=22, yanchor="bottom",
-                            font=dict(size=9, color="#f97316"),
-                        )
-
-            if show_annotations:
-                for _, r in yoy_df.iterrows():
-                    growth_value = r.get("Growth %")
-                    growth_text = r.get("Growth Label")
-
-                    if (
-                        pd.notna(growth_value)
-                        and growth_text
-                        and growth_text not in ["N/A", "Forecast"]
-                    ):
+                    if r["Growth Label"] and r["Growth Label"] != "N/A":
+                        growth_value = r["Growth %"] if pd.notna(r["Growth %"]) else 0
                         label_color = "#166534" if growth_value >= 0 else "#dc2626"
                         bar_top = max(
                             r["Revenue Cr"] if pd.notna(r["Revenue Cr"]) else 0,
                             r["Prev Revenue Cr"] if pd.notna(r["Prev Revenue Cr"]) else 0,
                             r["Forecast Revenue Cr"] if pd.notna(r["Forecast Revenue Cr"]) else 0,
                         )
-
+                        growth_gap = 0.24 if trend_type == "Monthly" else 0.16
                         fig_yoy.add_annotation(
                             x=r["Period"],
                             y=bar_top + (yoy_max * growth_gap),
-                            text=growth_text,
+                            text=r["Growth Label"],
                             showarrow=False,
-                            yanchor="bottom",
-                            font=dict(
-                                size=annotation_font_size,
-                                color=label_color,
-                                family="Arial Black",
-                            ),
+                            font=dict(size=10, color=label_color, family="Arial Black"),
                         )
-
-            # Short and readable labels for Weekly view.
-            if trend_type == "Weekly":
-                weekly_labels = []
-                for period in yoy_df["Period"].astype(str):
-                    try:
-                        start_text, end_text = period.split("/")
-                        start_label = pd.to_datetime(start_text)
-                        end_label = pd.to_datetime(end_text)
-                        weekly_labels.append(
-                            f"{start_label.strftime('%d %b')}–{end_label.strftime('%d %b')}"
-                        )
-                    except Exception:
-                        weekly_labels.append(period)
-
-                fig_yoy.update_xaxes(
-                    tickmode="array",
-                    tickvals=yoy_df["Period"].tolist(),
-                    ticktext=weekly_labels,
-                )
-
-            # Show only around 10 date labels in Daily view.
-            elif trend_type == "Daily" and period_count > 15:
-                step = max(1, period_count // 10)
-                daily_tickvals = yoy_df["Period"].iloc[::step].tolist()
-                daily_ticktext = []
-                for value in daily_tickvals:
-                    try:
-                        daily_ticktext.append(pd.to_datetime(value).strftime("%d %b"))
-                    except Exception:
-                        daily_ticktext.append(str(value))
-
-                fig_yoy.update_xaxes(
-                    tickmode="array",
-                    tickvals=daily_tickvals,
-                    ticktext=daily_ticktext,
-                )
-
-            x_tick_angle = -25 if trend_type == "Weekly" else -35 if trend_type == "Daily" else 0
-            y_range_multiplier = 1.40 if show_annotations else 1.24
 
             fig_yoy.update_layout(
                 barmode="group",
-                height=chart_height,
-                margin=dict(
-                    l=45,
-                    r=18,
-                    t=58,
-                    b=88 if trend_type in ["Daily", "Weekly"] else 45,
-                ),
-                xaxis_title="",
-                yaxis_title="Revenue (Cr)",
+                height=250,
+                margin=dict(l=2, r=2, t=30, b=2),
                 plot_bgcolor="#f8fafc",
                 paper_bgcolor="rgba(0,0,0,0)",
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
-                    y=1.03,
-                    xanchor="left",
+                    y=1.05,
                     x=0,
                     font=dict(size=9),
                 ),
-                yaxis_range=[0, yoy_max * y_range_multiplier],
-                bargap=0.18,
-                bargroupgap=0.06,
-                hovermode="x unified",
-                uniformtext=dict(minsize=8, mode="hide"),
+                xaxis_title="",
+                yaxis_title="Revenue (Cr)",
+                yaxis_range=[0, yoy_max * (1.48 if trend_type == "Monthly" else 1.35)],
+                bargap=0.22,
+                bargroupgap=0.08,
             )
+            apply_3d_chart_layout(fig_yoy, height=250, margin=dict(l=8, r=8, t=34, b=8))
+            fig_yoy.update_xaxes(showgrid=False, showline=False, zeroline=False)
+            fig_yoy.update_yaxes(showgrid=False, showline=False, zeroline=False)
 
-            fig_yoy.update_xaxes(
-                showgrid=False,
-                showline=False,
-                zeroline=False,
-                tickangle=x_tick_angle,
-                tickfont=dict(size=9),
-                automargin=True,
-            )
-            fig_yoy.update_yaxes(
-                showgrid=True,
-                gridcolor="rgba(148,163,184,0.18)",
-                showline=False,
-                zeroline=False,
-                tickfont=dict(size=9),
-                automargin=True,
-            )
-
-            st.plotly_chart(
-                fig_yoy,
-                width="stretch",
-                config={"displayModeBar": False, "responsive": True},
-            )
+            st.plotly_chart(fig_yoy, width="stretch")
 
     with row2:
         with st.container(border=True):
