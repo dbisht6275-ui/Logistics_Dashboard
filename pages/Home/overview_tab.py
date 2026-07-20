@@ -501,7 +501,7 @@ def show_overview():
 
     # Bold Filters header
     st.markdown(
-        "<div style='font-weight:900;font-size:12px;color:#0f172a;margin-bottom:8px;'>FILTERS</div>",
+        "<div style='font-weight:900;font-size:12px;color:#2563eb;margin-bottom:8px;'>FILTERS</div>",
         unsafe_allow_html=True,
     )
 
@@ -512,11 +512,11 @@ def show_overview():
     ) = st.columns(8)
 
     with filter_col1:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>View Type</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>View Type</div>", unsafe_allow_html=True)
         view_type = st.selectbox("View Type", ["Origin", "Destination"], label_visibility="collapsed")
 
     with filter_col2:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Financial Year</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Financial Year</div>", unsafe_allow_html=True)
         fy = st.selectbox(
             "Financial Year",
             [
@@ -611,7 +611,7 @@ def show_overview():
             locked_zone = circle_row["zone"].iloc[0]
 
     with filter_col3:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Zone</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Zone</div>", unsafe_allow_html=True)
         if locked_zone:
             zone = locked_zone
             st.selectbox("Zone", [zone], disabled=True, help="Locked as per your assigned rights", label_visibility="collapsed")
@@ -622,7 +622,7 @@ def show_overview():
         df = df[df["zone"] == zone]
 
     with filter_col4:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Circle</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Circle</div>", unsafe_allow_html=True)
         if locked_circle:
             circle = locked_circle
             st.selectbox("Circle", [circle], disabled=True, help="Locked as per your assigned rights", label_visibility="collapsed")
@@ -633,7 +633,7 @@ def show_overview():
         df = df[df["circle"] == circle]
 
     with filter_col5:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Branch</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Branch</div>", unsafe_allow_html=True)
         if locked_branch:
             branch = locked_branch
             st.selectbox("Branch", [branch], disabled=True, help="Locked as per your assigned rights", label_visibility="collapsed")
@@ -644,7 +644,7 @@ def show_overview():
         df = df[df["branch"] == branch]
 
     with filter_col6:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Quarter</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Quarter</div>", unsafe_allow_html=True)
         available_quarters = [q for q in QUARTER_ORDER if q in df["Quarter"].dropna().unique().tolist()]
         quarter = st.selectbox("Quarter", ["All"] + available_quarters, label_visibility="collapsed")
 
@@ -652,7 +652,7 @@ def show_overview():
         df = df[df["Quarter"] == quarter]
 
     with filter_col7:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Month</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Month</div>", unsafe_allow_html=True)
         available_months = [m for m in MONTH_ORDER if m in df["Month"].dropna().unique().tolist()]
         month = st.selectbox("Month", ["All"] + available_months, label_visibility="collapsed")
 
@@ -660,7 +660,7 @@ def show_overview():
         df = df[df["Month"] == month]
 
     with filter_col8:
-        st.markdown("<div style='font-weight:900;font-size:12px;color:#0f172a;'>Load Type</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:900;font-size:12px;color:#2563eb;'>Load Type</div>", unsafe_allow_html=True)
         loadtype = st.selectbox("Load Type", ["All"] + sorted(df["LOADTYPE"].dropna().unique().tolist()), label_visibility="collapsed")
 
     if loadtype != "All":
@@ -1344,9 +1344,13 @@ def show_overview():
             # Calculate percentage for each zone
             total_zone_revenue = zone_df["Revenue Cr"].sum()
             zone_df["Percentage"] = (zone_df["Revenue Cr"] / total_zone_revenue * 100).round(1)
+            # Keep revenue and contribution percentage as separate values.
+            # Plotly renders the revenue as the main bar label and the percentage below it.
+            zone_df["Revenue Label"] = zone_df["Revenue Cr"].map(lambda value: f"₹{value:.2f} Cr")
+            zone_df["Percentage Label"] = zone_df["Percentage"].map(lambda value: f"{value:.1f}%")
             zone_df["Text"] = zone_df.apply(
-                lambda row: f"₹{row['Revenue Cr']:.2f} Cr<br>({row['Percentage']:.1f}%)", 
-                axis=1
+                lambda row: f"{row['Revenue Label']}<br><span style='font-size:10px'>({row['Percentage Label']})</span>",
+                axis=1,
             )
 
             # Sort for display
@@ -1396,29 +1400,36 @@ def show_overview():
                 })
 
                 numeric_cols = matrix_display.columns[1:]
-                
-                # Calculate grand total and convert to percentages
-                grand_total = matrix_display[numeric_cols].sum().sum()
-                
-                # Create a copy for percentage calculation
-                matrix_pct = matrix_display.copy()
-                for col in numeric_cols:
-                    if grand_total > 0:
-                        matrix_pct[col] = (matrix_display[col] / grand_total * 100)
-                    else:
-                        matrix_pct[col] = 0
 
-                styled_matrix = (
-                    matrix_pct.style
-                    .format("{:.1f}%", subset=numeric_cols)
-                    .background_gradient(cmap="Blues", subset=numeric_cols)
+                # The pivot already contains a Total column. Exclude it when calculating
+                # the grand total, otherwise every value is counted twice.
+                country_cols = [col for col in numeric_cols if col != "Total"]
+                grand_total = matrix_display[country_cols].to_numpy().sum() if country_cols else 0
+
+                # Show both revenue and contribution percentage in every cell.
+                matrix_value_display = matrix_display.copy()
+                for col in country_cols:
+                    matrix_value_display[col] = matrix_display[col].apply(
+                        lambda value: (
+                            f"₹{value:.2f} Cr | {(value / grand_total * 100):.1f}%"
+                            if grand_total > 0
+                            else f"₹{value:.2f} Cr | 0.0%"
+                        )
+                    )
+
+                matrix_value_display["Total"] = matrix_display["Total"].apply(
+                    lambda value: (
+                        f"₹{value:.2f} Cr | {(value / grand_total * 100):.1f}%"
+                        if grand_total > 0
+                        else f"₹{value:.2f} Cr | 0.0%"
+                    )
                 )
 
                 st.dataframe(
-                    styled_matrix,
+                    matrix_value_display,
                     use_container_width=True,
                     hide_index=True,
-                    height=240
+                    height=240,
                 )
 
     # =====================================================
