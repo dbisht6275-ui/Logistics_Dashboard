@@ -92,7 +92,72 @@ def _inject_overview_css():
                 transition: all 0.18s ease;
             }
 
-            div[data-baseweb="select"] > div,
+            /* Raised 3D filter controls */
+            div[data-testid="stSelectbox"] {
+                padding: 7px 8px 9px 8px;
+                border: 1px solid rgba(148,163,184,.42);
+                border-radius: 13px;
+                background: linear-gradient(145deg, #ffffff 0%, #f3f6fa 55%, #dfe7f1 100%);
+                box-shadow:
+                    0 6px 0 #cbd5e1,
+                    0 10px 18px rgba(15,23,42,.13),
+                    inset 1px 1px 0 rgba(255,255,255,.95),
+                    inset -1px -1px 0 rgba(148,163,184,.20);
+                transform: translateY(-2px);
+                transition: transform .16s ease, box-shadow .16s ease;
+            }
+
+            div[data-testid="stSelectbox"]:hover {
+                transform: translateY(-4px);
+                box-shadow:
+                    0 8px 0 #cbd5e1,
+                    0 14px 22px rgba(15,23,42,.16),
+                    inset 1px 1px 0 rgba(255,255,255,.95);
+            }
+
+            div[data-testid="stSelectbox"]:focus-within {
+                border-color: #60a5fa;
+                box-shadow:
+                    0 5px 0 #93c5fd,
+                    0 10px 20px rgba(37,99,235,.18),
+                    0 0 0 3px rgba(59,130,246,.14),
+                    inset 1px 1px 0 rgba(255,255,255,.95);
+            }
+
+            div[data-baseweb="select"] > div {
+                min-height: 36px !important;
+                border: 1px solid rgba(100,116,139,.38) !important;
+                border-radius: 9px !important;
+                background: linear-gradient(145deg, #ffffff 0%, #f8fafc 48%, #e2e8f0 100%) !important;
+                box-shadow:
+                    inset 2px 2px 4px rgba(15,23,42,.07),
+                    inset -2px -2px 4px rgba(255,255,255,.96),
+                    0 2px 3px rgba(15,23,42,.08) !important;
+            }
+
+            div[data-baseweb="select"] span {
+                color: #0f2747 !important;
+                font-weight: 700 !important;
+                font-size: 11px !important;
+            }
+
+            div[data-baseweb="select"] svg {
+                color: #2563eb !important;
+                filter: drop-shadow(0 1px 1px rgba(15,23,42,.18));
+            }
+
+            div[data-baseweb="popover"] ul {
+                border: 1px solid rgba(148,163,184,.45) !important;
+                border-radius: 12px !important;
+                background: linear-gradient(145deg, #ffffff, #eef2f7) !important;
+                box-shadow: 0 16px 30px rgba(15,23,42,.20) !important;
+                overflow: hidden !important;
+            }
+
+            div[data-baseweb="popover"] li:hover {
+                background: linear-gradient(90deg, #dbeafe, #eff6ff) !important;
+            }
+
             div[data-testid="stNumberInput"] input,
             div[data-testid="stFileUploader"] section {
                 border-radius: 10px !important;
@@ -626,7 +691,7 @@ def show_overview():
 
     # Bold Filters header
     st.markdown(
-        "<div style='font-weight:400;font-size:12px;color:#2563eb;margin-bottom:8px;'>FILTERS</div>",
+        "<div style='display:inline-flex;align-items:center;gap:7px;font-weight:900;font-size:12px;letter-spacing:.7px;color:#0f2747;margin:2px 0 13px 2px;padding:7px 14px;border:1px solid #cbd5e1;border-radius:10px;background:linear-gradient(145deg,#ffffff,#dfe7f2);box-shadow:0 5px 0 #cbd5e1,0 9px 15px rgba(15,23,42,.14);'>⚙ FILTERS</div>",
         unsafe_allow_html=True,
     )
 
@@ -637,11 +702,11 @@ def show_overview():
     ) = st.columns(8)
 
     with filter_col1:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>View Type</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>View Type</div>", unsafe_allow_html=True)
         view_type = st.selectbox("View Type", ["Origin", "Destination"], label_visibility="collapsed")
 
     with filter_col2:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Financial Year</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Financial Year</div>", unsafe_allow_html=True)
         fy = st.selectbox(
             "Financial Year",
             [
@@ -736,7 +801,7 @@ def show_overview():
             locked_zone = circle_row["zone"].iloc[0]
 
     with filter_col3:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Zone</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Zone</div>", unsafe_allow_html=True)
         if locked_zone:
             zone = locked_zone
             st.selectbox("Zone", [zone], disabled=True, help="Locked as per your assigned rights", label_visibility="collapsed")
@@ -747,7 +812,7 @@ def show_overview():
         df = df[df["zone"] == zone]
 
     with filter_col4:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Circle</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Circle</div>", unsafe_allow_html=True)
         if locked_circle:
             circle = locked_circle
             st.selectbox("Circle", [circle], disabled=True, help="Locked as per your assigned rights", label_visibility="collapsed")
@@ -758,7 +823,7 @@ def show_overview():
         df = df[df["circle"] == circle]
 
     with filter_col5:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Branch</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Branch</div>", unsafe_allow_html=True)
         if locked_branch:
             branch = locked_branch
             st.selectbox("Branch", [branch], disabled=True, help="Locked as per your assigned rights", label_visibility="collapsed")
@@ -769,7 +834,7 @@ def show_overview():
         df = df[df["branch"] == branch]
 
     with filter_col6:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Quarter</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Quarter</div>", unsafe_allow_html=True)
         available_quarters = [q for q in QUARTER_ORDER if q in df["Quarter"].dropna().unique().tolist()]
         quarter = st.selectbox("Quarter", ["All"] + available_quarters, label_visibility="collapsed")
 
@@ -777,7 +842,7 @@ def show_overview():
         df = df[df["Quarter"] == quarter]
 
     with filter_col7:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Month</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Month</div>", unsafe_allow_html=True)
         available_months = [m for m in MONTH_ORDER if m in df["Month"].dropna().unique().tolist()]
         month = st.selectbox("Month", ["All"] + available_months, label_visibility="collapsed")
 
@@ -785,7 +850,7 @@ def show_overview():
         df = df[df["Month"] == month]
 
     with filter_col8:
-        st.markdown("<div style='font-weight:400;font-size:12px;color:#2563eb;'>Load Type</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:11px;color:#334155;margin:0 0 6px 3px;text-shadow:0 1px 0 #ffffff;'>Load Type</div>", unsafe_allow_html=True)
         loadtype = st.selectbox("Load Type", ["All"] + sorted(df["LOADTYPE"].dropna().unique().tolist()), label_visibility="collapsed")
 
     if loadtype != "All":
