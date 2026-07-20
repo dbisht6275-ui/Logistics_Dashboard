@@ -1585,6 +1585,8 @@ def show_overview():
 
             period_count = len(yoy_df)
             show_bar_values = trend_type in ["Monthly", "Quarterly"] or period_count <= 12
+            # Monthly values are added as annotations below so they always remain visible.
+            trace_bar_values = show_bar_values and trend_type != "Monthly"
 
             fig_yoy.add_trace(
                 go.Bar(
@@ -1592,8 +1594,8 @@ def show_overview():
                     y=yoy_df["Prev Revenue Cr"],
                     name=f"LY ({prev_fy})",
                     marker=dict(color="#cbd5e1", line=dict(color="#94a3b8", width=1.3)),
-                    text=yoy_df["Prev Revenue Cr"] if show_bar_values else None,
-                    texttemplate="%{text:.2f}" if show_bar_values else None,
+                    text=yoy_df["Prev Revenue Cr"] if trace_bar_values else None,
+                    texttemplate="%{text:.2f}" if trace_bar_values else None,
                     textposition="outside",
                     textfont=dict(size=9, color="#64748b"),
                     cliponaxis=False,
@@ -1607,8 +1609,8 @@ def show_overview():
                     y=yoy_df["Revenue Cr"],
                     name=f"Current ({fy})",
                     marker=dict(color="#2563eb", line=dict(color="#1e3a8a", width=1.3)),
-                    text=yoy_df["Revenue Cr"] if show_bar_values else None,
-                    texttemplate="%{text:.2f}" if show_bar_values else None,
+                    text=yoy_df["Revenue Cr"] if trace_bar_values else None,
+                    texttemplate="%{text:.2f}" if trace_bar_values else None,
                     textposition="outside",
                     textfont=dict(size=9, color="#2563eb"),
                     cliponaxis=False,
@@ -1626,8 +1628,8 @@ def show_overview():
                         y=forecast_df["Forecast Revenue Cr"],
                         name="Forecast",
                         marker=dict(color="#f97316", line=dict(color="#c2410c", width=1.3)),
-                        text=forecast_df["Forecast Revenue Cr"] if show_bar_values else None,
-                        texttemplate="%{text:.2f}" if show_bar_values else None,
+                        text=forecast_df["Forecast Revenue Cr"] if trace_bar_values else None,
+                        texttemplate="%{text:.2f}" if trace_bar_values else None,
                         textposition="outside",
                         textfont=dict(size=9, color="#f97316"),
                         cliponaxis=False,
@@ -1669,6 +1671,40 @@ def show_overview():
                 trend_type in ["Monthly", "Quarterly"]
                 or period_count <= 16
             )
+
+            # In Monthly view, draw every bar value with annotations just like the
+            # Monthly Weight Trend. This avoids Plotly hiding outside text when bars
+            # are grouped or when the chart is resized.
+            if trend_type == "Monthly":
+                has_forecast = not forecast_df.empty
+                for _, r in yoy_df.iterrows():
+                    prev_value = r.get("Prev Revenue Cr")
+                    current_value = r.get("Revenue Cr")
+                    forecast_value = r.get("Forecast Revenue Cr")
+
+                    if pd.notna(prev_value):
+                        fig_yoy.add_annotation(
+                            x=r["Period"], y=prev_value + (yoy_max * 0.025),
+                            text=f"{prev_value:.2f}", showarrow=False,
+                            xshift=-22 if has_forecast else -14, yanchor="bottom",
+                            font=dict(size=9, color="#64748b"),
+                        )
+
+                    if pd.notna(current_value):
+                        fig_yoy.add_annotation(
+                            x=r["Period"], y=current_value + (yoy_max * 0.025),
+                            text=f"{current_value:.2f}", showarrow=False,
+                            xshift=0 if has_forecast else 14, yanchor="bottom",
+                            font=dict(size=9, color="#2563eb"),
+                        )
+
+                    if pd.notna(forecast_value):
+                        fig_yoy.add_annotation(
+                            x=r["Period"], y=forecast_value + (yoy_max * 0.025),
+                            text=f"{forecast_value:.2f}", showarrow=False,
+                            xshift=22, yanchor="bottom",
+                            font=dict(size=9, color="#f97316"),
+                        )
 
             if show_annotations:
                 for _, r in yoy_df.iterrows():
