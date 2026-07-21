@@ -1576,7 +1576,7 @@ def show_overview():
     ltl_pct = (ltl / revenue * 100) if revenue else 0
 
     # Revenue trend and load type charts
-    row1, row2 = st.columns([1.4, 0.40])
+    row1, row2 = st.columns([1.35, 0.65])
 
     with row1:
         with st.container(border=True):
@@ -1697,7 +1697,7 @@ def show_overview():
 
             fig_yoy.update_layout(
                 barmode="group",
-                height=250,
+                height=520,
                 margin=dict(l=2, r=2, t=30, b=2),
                 plot_bgcolor="#f8fafc",
                 paper_bgcolor="rgba(0,0,0,0)",
@@ -1714,7 +1714,7 @@ def show_overview():
                 bargap=0.22,
                 bargroupgap=0.08,
             )
-            apply_3d_chart_layout(fig_yoy, height=250, margin=dict(l=8, r=8, t=34, b=8))
+            apply_3d_chart_layout(fig_yoy, height=520, margin=dict(l=8, r=8, t=34, b=8))
             fig_yoy.update_xaxes(showgrid=False, showline=False, zeroline=False)
             fig_yoy.update_yaxes(showgrid=False, showline=False, zeroline=False)
 
@@ -1774,8 +1774,6 @@ def show_overview():
                 unsafe_allow_html=True,
             )
 
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-
     # =====================================================
     # Revenue by Company - Donut Chart
     # =====================================================
@@ -1807,8 +1805,8 @@ def show_overview():
                         sort=False,
                         direction="clockwise",
                         customdata=company_df[["Contribution %"]].to_numpy(),
-                        texttemplate="<b>%{label}</b><br>%{percent:.1%}",
-                        textposition="outside",
+                        texttemplate="%{percent:.0%}",
+                        textposition="inside",
                         textfont=dict(size=11, family="Arial Black"),
                         hovertemplate=(
                             "<b>%{label}</b><br>"
@@ -1824,17 +1822,17 @@ def show_overview():
             )
 
             fig_company.update_layout(
-                height=max(390, min(520, 390 + max(0, len(company_df) - 5) * 12)),
-                margin=dict(l=35, r=35, t=25, b=25),
+                height=250,
+                margin=dict(l=2, r=105, t=5, b=2),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
                 showlegend=True,
                 legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=-0.08,
-                    xanchor="center",
-                    x=0.5,
+                    orientation="v",
+                    yanchor="middle",
+                    y=0.5,
+                    xanchor="left",
+                    x=1.02,
                     font=dict(size=10),
                     itemclick="toggle",
                     itemdoubleclick="toggleothers",
@@ -1846,7 +1844,7 @@ def show_overview():
                         y=0.5,
                         showarrow=False,
                         align="center",
-                        font=dict(size=17, color="#0f172a", family="Arial Black"),
+                        font=dict(size=14, color="#0f172a", family="Arial Black"),
                     )
                 ],
                 uniformtext_minsize=9,
@@ -1861,6 +1859,9 @@ def show_overview():
                     "responsive": True,
                 },
             )
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
@@ -2462,6 +2463,8 @@ def show_overview():
     party_col = _find_column(df, party_candidates)
     prev_party_col = _find_column(prev_df, party_candidates) if prev_df is not None and not prev_df.empty else None
 
+    party_layout_col, route_layout_col = st.columns(2, gap="medium")
+
     if party_col is not None:
         current_party = (
             df.assign(_party=df[party_col].fillna("Unknown").astype(str).str.strip())
@@ -2491,95 +2494,97 @@ def show_overview():
             axis=1,
         )
         party_yoy = (
-            party_yoy.sort_values("Current Revenue", ascending=False).head(10)
+            party_yoy.sort_values("Current Revenue", ascending=False).head(7)
             .sort_values("Current Revenue", ascending=True).reset_index(drop=True)
         )
         party_yoy["Party Display"] = party_yoy["_party"].apply(
             lambda value: value if len(value) <= 28 else value[:26] + "…"
         )
 
-        with st.container(border=True):
-            title_col, metric_col = st.columns([3, 1])
-            with title_col:
-                st.markdown(
-                    f"###### Top 10 {party_label}s | Current FY vs LY"
-                    "<div style='font-size:10px;color:#64748b;margin-top:-4px;'>"
-                    f"View Type: {view_type}. Ranked by current-year revenue against the same filtered period last year."
-                    "</div>",
-                    unsafe_allow_html=True,
-                )
-            with metric_col:
-                total_current = party_yoy["Current Revenue Cr"].sum()
-                total_previous = party_yoy["Previous Revenue Cr"].sum()
-                total_growth = pct_growth(total_current, total_previous) if total_previous > 0 else 0
-                growth_color = "#166534" if total_growth >= 0 else "#dc2626"
-                st.markdown(
-                    f"<div style='text-align:right;font-size:10px;color:#64748b;'>Top 10 Revenue</div>"
-                    f"<div style='text-align:right;font-size:16px;font-weight:900;color:#0f172a;'>₹{total_current:.2f} Cr</div>"
-                    f"<div style='text-align:right;font-size:10px;font-weight:800;color:{growth_color};'>"
-                    f"{growth_label(total_growth)} vs LY</div>",
-                    unsafe_allow_html=True,
-                )
+        with party_layout_col:
+            with st.container(border=True):
+                title_col, metric_col = st.columns([3, 1])
+                with title_col:
+                    st.markdown(
+                        f"###### Top 7 {party_label}s | Current FY vs LY"
+                        "<div style='font-size:10px;color:#64748b;margin-top:-4px;'>"
+                        f"View Type: {view_type}. Ranked by current-year revenue against the same filtered period last year."
+                        "</div>",
+                        unsafe_allow_html=True,
+                    )
+                with metric_col:
+                    total_current = party_yoy["Current Revenue Cr"].sum()
+                    total_previous = party_yoy["Previous Revenue Cr"].sum()
+                    total_growth = pct_growth(total_current, total_previous) if total_previous > 0 else 0
+                    growth_color = "#166534" if total_growth >= 0 else "#dc2626"
+                    st.markdown(
+                        f"<div style='text-align:right;font-size:10px;color:#64748b;'>Top 7 Revenue</div>"
+                        f"<div style='text-align:right;font-size:16px;font-weight:900;color:#0f172a;'>₹{total_current:.2f} Cr</div>"
+                        f"<div style='text-align:right;font-size:10px;font-weight:800;color:{growth_color};'>"
+                        f"{growth_label(total_growth)} vs LY</div>",
+                        unsafe_allow_html=True,
+                    )
 
-            fig_party = go.Figure()
-            fig_party.add_trace(go.Bar(
-                y=party_yoy["Party Display"], x=party_yoy["Previous Revenue Cr"],
-                name=f"LY ({prev_fy})", orientation="h",
-                marker=dict(color="#dbe4f0", line=dict(color="#b8c7dc", width=1)),
-                text=party_yoy["Previous Revenue Cr"], texttemplate="₹%{text:.2f}",
-                textposition="inside", insidetextanchor="middle",
-                textfont=dict(size=9, color="#475569"),
-                hovertemplate="<b>%{y}</b><br>LY Revenue: ₹%{x:.2f} Cr<extra></extra>",
-            ))
-            fig_party.add_trace(go.Bar(
-                y=party_yoy["Party Display"], x=party_yoy["Current Revenue Cr"],
-                name=f"Current ({fy})", orientation="h",
-                marker=dict(color="#2563eb", line=dict(color="#1d4ed8", width=1)),
-                customdata=party_yoy[["Growth %", "_party"]].to_numpy(),
-                text=party_yoy["Current Revenue Cr"], texttemplate="₹%{text:.2f}",
-                textposition="outside", textfont=dict(size=10, color="#0f172a", family="Arial Black"),
-                cliponaxis=False,
-                hovertemplate=("<b>%{customdata[1]}</b><br>Current Revenue: ₹%{x:.2f} Cr"
-                               "<br>YoY Growth: %{customdata[0]:.1f}%<extra></extra>"),
-            ))
+                fig_party = go.Figure()
+                fig_party.add_trace(go.Bar(
+                    y=party_yoy["Party Display"], x=party_yoy["Previous Revenue Cr"],
+                    name=f"LY ({prev_fy})", orientation="h",
+                    marker=dict(color="#dbe4f0", line=dict(color="#b8c7dc", width=1)),
+                    text=party_yoy["Previous Revenue Cr"], texttemplate="₹%{text:.2f}",
+                    textposition="inside", insidetextanchor="middle",
+                    textfont=dict(size=9, color="#475569"),
+                    hovertemplate="<b>%{y}</b><br>LY Revenue: ₹%{x:.2f} Cr<extra></extra>",
+                ))
+                fig_party.add_trace(go.Bar(
+                    y=party_yoy["Party Display"], x=party_yoy["Current Revenue Cr"],
+                    name=f"Current ({fy})", orientation="h",
+                    marker=dict(color="#2563eb", line=dict(color="#1d4ed8", width=1)),
+                    customdata=party_yoy[["Growth %", "_party"]].to_numpy(),
+                    text=party_yoy["Current Revenue Cr"], texttemplate="₹%{text:.2f}",
+                    textposition="outside", textfont=dict(size=10, color="#0f172a", family="Arial Black"),
+                    cliponaxis=False,
+                    hovertemplate=("<b>%{customdata[1]}</b><br>Current Revenue: ₹%{x:.2f} Cr"
+                                   "<br>YoY Growth: %{customdata[0]:.1f}%<extra></extra>"),
+                ))
 
-            max_party_revenue = max(party_yoy["Current Revenue Cr"].max(), party_yoy["Previous Revenue Cr"].max(), 1)
-            for _, row in party_yoy.iterrows():
-                if pd.notna(row["Growth %"]):
-                    c = "#15803d" if row["Growth %"] >= 0 else "#dc2626"
-                    a = "▲" if row["Growth %"] >= 0 else "▼"
-                    label = f"<b>{a} {abs(row['Growth %']):.1f}%</b>"
-                else:
-                    c, label = "#7c3aed", "<b>New</b>"
-                fig_party.add_annotation(
-                    x=max(row["Current Revenue Cr"], row["Previous Revenue Cr"]) + max_party_revenue * 0.12,
-                    y=row["Party Display"], text=label, showarrow=False, xanchor="left",
-                    font=dict(size=10, color=c), bgcolor="#ffffff", bordercolor="#e2e8f0",
-                    borderwidth=1, borderpad=3,
+                max_party_revenue = max(party_yoy["Current Revenue Cr"].max(), party_yoy["Previous Revenue Cr"].max(), 1)
+                for _, row in party_yoy.iterrows():
+                    if pd.notna(row["Growth %"]):
+                        c = "#15803d" if row["Growth %"] >= 0 else "#dc2626"
+                        a = "▲" if row["Growth %"] >= 0 else "▼"
+                        label = f"<b>{a} {abs(row['Growth %']):.1f}%</b>"
+                    else:
+                        c, label = "#7c3aed", "<b>New</b>"
+                    fig_party.add_annotation(
+                        x=max(row["Current Revenue Cr"], row["Previous Revenue Cr"]) + max_party_revenue * 0.12,
+                        y=row["Party Display"], text=label, showarrow=False, xanchor="left",
+                        font=dict(size=10, color=c), bgcolor="#ffffff", bordercolor="#e2e8f0",
+                        borderwidth=1, borderpad=3,
+                    )
+
+                party_chart_height = max(360, 45 * len(party_yoy) + 110)
+                fig_party.update_layout(
+                    barmode="group", bargap=0.28, bargroupgap=0.08, height=party_chart_height,
+                    margin=dict(l=8, r=105, t=35, b=28), plot_bgcolor="#f8fafc",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(size=10)),
+                    xaxis_title="Revenue (Cr)", xaxis_range=[0, max_party_revenue * 1.52],
+                    hoverlabel=dict(bgcolor="white", font_size=11),
                 )
-
-            party_chart_height = max(360, 42 * len(party_yoy) + 105)
-            fig_party.update_layout(
-                barmode="group", bargap=0.28, bargroupgap=0.08, height=party_chart_height,
-                margin=dict(l=8, r=105, t=35, b=28), plot_bgcolor="#f8fafc",
-                paper_bgcolor="rgba(0,0,0,0)",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(size=10)),
-                xaxis_title="Revenue (Cr)", xaxis_range=[0, max_party_revenue * 1.52],
-                hoverlabel=dict(bgcolor="white", font_size=11),
-            )
-            apply_3d_chart_layout(fig_party, height=party_chart_height, margin=dict(l=8, r=105, t=35, b=28))
-            fig_party.update_xaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=10))
-            fig_party.update_yaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=10))
-            st.plotly_chart(fig_party, use_container_width=True)
+                apply_3d_chart_layout(fig_party, height=party_chart_height, margin=dict(l=8, r=105, t=35, b=28))
+                fig_party.update_xaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=10))
+                fig_party.update_yaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=10))
+                st.plotly_chart(fig_party, use_container_width=True)
     else:
-        with st.container(border=True):
-            st.info(
-                f"Top 10 {party_label}s could not be displayed because a matching {party_label.lower()} column "
-                f"was not found in the booking dataset."
-            )
+        with party_layout_col:
+            with st.container(border=True):
+                st.info(
+                    f"Top 7 {party_label}s could not be displayed because a matching {party_label.lower()} column "
+                    f"was not found in the booking dataset."
+                )
 
     # =====================================================
-    # Top 10 Routes | Use existing route column
+    # Top 7 Routes | Use existing route column
     # =====================================================
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
@@ -2663,97 +2668,99 @@ def show_overview():
             lambda value: value if len(value) <= 42 else value[:40] + "…"
         )
 
-        with st.container(border=True):
-            st.markdown(
-                f"###### Top 10 Routes | {view_type} View"
-                "<div style='font-size:10px;color:#64748b;margin-top:-4px;'>"
-                + ("Origin → Destination" if view_type == "Origin" else "Destination → Origin")
-                + " direction, ranked by current-year revenue.</div>",
-                unsafe_allow_html=True,
-            )
-
-            if route_yoy.empty:
-                st.info("No route data is available for the selected filters.")
-            else:
-                fig_route = go.Figure()
-                fig_route.add_trace(go.Bar(
-                    y=route_yoy["Route Display"],
-                    x=route_yoy["Previous Revenue Cr"],
-                    name=f"LY ({prev_fy})",
-                    orientation="h",
-                    marker=dict(color="#dbe4f0", line=dict(color="#b8c7dc", width=1)),
-                    text=route_yoy["Previous Revenue Cr"],
-                    texttemplate="₹%{text:.2f}",
-                    textposition="inside",
-                    textfont=dict(size=9, color="#475569"),
-                    hovertemplate="<b>%{y}</b><br>LY Revenue: ₹%{x:.2f} Cr<extra></extra>",
-                ))
-                fig_route.add_trace(go.Bar(
-                    y=route_yoy["Route Display"],
-                    x=route_yoy["Current Revenue Cr"],
-                    name=f"Current ({fy})",
-                    orientation="h",
-                    marker=dict(color="#0f766e", line=dict(color="#115e59", width=1)),
-                    customdata=route_yoy[["Growth %", "_route"]].to_numpy(),
-                    text=route_yoy["Current Revenue Cr"],
-                    texttemplate="₹%{text:.2f}",
-                    textposition="outside",
-                    textfont=dict(size=10, color="#0f172a", family="Arial Black"),
-                    cliponaxis=False,
-                    hovertemplate=(
-                        "<b>%{customdata[1]}</b><br>Current Revenue: ₹%{x:.2f} Cr"
-                        "<br>YoY Growth: %{customdata[0]:.1f}%<extra></extra>"
-                    ),
-                ))
-
-                max_route_revenue = max(
-                    route_yoy["Current Revenue Cr"].max(),
-                    route_yoy["Previous Revenue Cr"].max(),
-                    1,
+        with route_layout_col:
+            with st.container(border=True):
+                st.markdown(
+                    f"###### Top 7 Routes | {view_type} View"
+                    "<div style='font-size:10px;color:#64748b;margin-top:-4px;'>"
+                    + ("Origin → Destination" if view_type == "Origin" else "Destination → Origin")
+                    + " direction, ranked by current-year revenue.</div>",
+                    unsafe_allow_html=True,
                 )
-                route_chart_height = max(360, 42 * len(route_yoy) + 105)
-                fig_route.update_layout(
-                    barmode="group",
-                    bargap=0.28,
-                    bargroupgap=0.08,
-                    height=route_chart_height,
-                    margin=dict(l=8, r=105, t=35, b=28),
-                    plot_bgcolor="#f8fafc",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    legend=dict(
+
+                if route_yoy.empty:
+                    st.info("No route data is available for the selected filters.")
+                else:
+                    fig_route = go.Figure()
+                    fig_route.add_trace(go.Bar(
+                        y=route_yoy["Route Display"],
+                        x=route_yoy["Previous Revenue Cr"],
+                        name=f"LY ({prev_fy})",
                         orientation="h",
-                        yanchor="bottom",
-                        y=1.02,
-                        x=0,
-                        font=dict(size=10),
-                    ),
-                    xaxis_title="Revenue (Cr)",
-                    xaxis_range=[0, max_route_revenue * 1.45],
-                )
-                apply_3d_chart_layout(
-                    fig_route,
-                    height=route_chart_height,
-                    margin=dict(l=8, r=105, t=35, b=28),
-                )
-                fig_route.update_xaxes(
-                    showgrid=False,
-                    showline=False,
-                    zeroline=False,
-                    tickfont=dict(size=10),
-                )
-                fig_route.update_yaxes(
-                    showgrid=False,
-                    showline=False,
-                    zeroline=False,
-                    tickfont=dict(size=10),
-                )
-                st.plotly_chart(fig_route, use_container_width=True)
+                        marker=dict(color="#dbe4f0", line=dict(color="#b8c7dc", width=1)),
+                        text=route_yoy["Previous Revenue Cr"],
+                        texttemplate="₹%{text:.2f}",
+                        textposition="inside",
+                        textfont=dict(size=9, color="#475569"),
+                        hovertemplate="<b>%{y}</b><br>LY Revenue: ₹%{x:.2f} Cr<extra></extra>",
+                    ))
+                    fig_route.add_trace(go.Bar(
+                        y=route_yoy["Route Display"],
+                        x=route_yoy["Current Revenue Cr"],
+                        name=f"Current ({fy})",
+                        orientation="h",
+                        marker=dict(color="#0f766e", line=dict(color="#115e59", width=1)),
+                        customdata=route_yoy[["Growth %", "_route"]].to_numpy(),
+                        text=route_yoy["Current Revenue Cr"],
+                        texttemplate="₹%{text:.2f}",
+                        textposition="outside",
+                        textfont=dict(size=10, color="#0f172a", family="Arial Black"),
+                        cliponaxis=False,
+                        hovertemplate=(
+                            "<b>%{customdata[1]}</b><br>Current Revenue: ₹%{x:.2f} Cr"
+                            "<br>YoY Growth: %{customdata[0]:.1f}%<extra></extra>"
+                        ),
+                    ))
+
+                    max_route_revenue = max(
+                        route_yoy["Current Revenue Cr"].max(),
+                        route_yoy["Previous Revenue Cr"].max(),
+                        1,
+                    )
+                    route_chart_height = max(360, 45 * len(route_yoy) + 110)
+                    fig_route.update_layout(
+                        barmode="group",
+                        bargap=0.28,
+                        bargroupgap=0.08,
+                        height=route_chart_height,
+                        margin=dict(l=8, r=105, t=35, b=28),
+                        plot_bgcolor="#f8fafc",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            x=0,
+                            font=dict(size=10),
+                        ),
+                        xaxis_title="Revenue (Cr)",
+                        xaxis_range=[0, max_route_revenue * 1.45],
+                    )
+                    apply_3d_chart_layout(
+                        fig_route,
+                        height=route_chart_height,
+                        margin=dict(l=8, r=105, t=35, b=28),
+                    )
+                    fig_route.update_xaxes(
+                        showgrid=False,
+                        showline=False,
+                        zeroline=False,
+                        tickfont=dict(size=10),
+                    )
+                    fig_route.update_yaxes(
+                        showgrid=False,
+                        showline=False,
+                        zeroline=False,
+                        tickfont=dict(size=10),
+                    )
+                    st.plotly_chart(fig_route, use_container_width=True)
     else:
-        with st.container(border=True):
-            st.info(
-                "Top 10 Routes could not be displayed because the route column was not found "
-                "in the booking dataset."
-            )
+        with route_layout_col:
+            with st.container(border=True):
+                st.info(
+                    "Top 7 Routes could not be displayed because the route column was not found "
+                    "in the booking dataset."
+                )
 
     # Small separator before branch analysis
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
