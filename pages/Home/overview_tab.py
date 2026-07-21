@@ -1073,26 +1073,24 @@ def show_overview():
 
     _inject_overview_css()
 
-    # Header with CSV export action on the top-right.
-    header_left, header_right = st.columns([7, 0.8], gap="small")
+    # Revenue Overview header card with the CSV export button inside it.
+    # The placeholder is filled after all filters have been applied.
+    with st.container(border=True):
+        header_left, header_right = st.columns([7, 1], gap="small", vertical_alignment="center")
 
-    with header_left:
-        st.markdown(
-            """
-            <div class="executive-header">
-                <div class="executive-title">Revenue Overview</div>
-                <div class="executive-subtitle">Executive view of revenue, shipments, load mix, geography and branch performance</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        with header_left:
+            st.markdown(
+                """
+                <div style="padding:2px 0 3px 4px;">
+                    <div class="executive-title">Revenue Overview</div>
+                    <div class="executive-subtitle">Executive view of revenue, shipments, load mix, geography and branch performance</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-    # The filtered dataframe is prepared later. This placeholder keeps the
-    # download button aligned with the header while allowing us to populate it
-    # after all dashboard filters have been applied.
-    with header_right:
-        st.markdown("<div style='height:7px'></div>", unsafe_allow_html=True)
-        export_placeholder = st.empty()
+        with header_right:
+            export_placeholder = st.empty()
 
     # Attractive single-row filter strip
     filter_cols = st.columns(9, gap="small")
