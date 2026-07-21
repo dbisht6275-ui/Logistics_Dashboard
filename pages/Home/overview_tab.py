@@ -1051,7 +1051,7 @@ def show_overview():
     )
 
     # Attractive single-row filter strip
-    filter_cols = st.columns(8, gap="small")
+    filter_cols = st.columns(9, gap="small")
 
     def _filter_label(icon, text):
         st.markdown(
@@ -1107,6 +1107,32 @@ def show_overview():
         st.warning("No data found")
         return
 
+    # Entity is supplied by the booking query as COMPNAME/compname.
+    entity_col = next(
+        (col for col in df.columns if str(col).strip().casefold() == "compname"),
+        None,
+    )
+    if entity_col is None:
+        st.error("Entity filter cannot be displayed because the compname column is missing from the booking data.")
+        return
+
+    # Standardise the column name so all filters and visuals use one stable field.
+    if entity_col != "compname":
+        df = df.rename(columns={entity_col: "compname"})
+    df["compname"] = df["compname"].fillna("Unknown").astype(str).str.strip().replace("", "Unknown")
+
+    if prev_df is not None and not prev_df.empty:
+        prev_entity_col = next(
+            (col for col in prev_df.columns if str(col).strip().casefold() == "compname"),
+            None,
+        )
+        if prev_entity_col is not None and prev_entity_col != "compname":
+            prev_df = prev_df.rename(columns={prev_entity_col: "compname"})
+        if "compname" in prev_df.columns:
+            prev_df["compname"] = (
+                prev_df["compname"].fillna("Unknown").astype(str).str.strip().replace("", "Unknown")
+            )
+
     month_map = {1:"Apr",2:"May",3:"Jun",4:"Jul",5:"Aug",6:"Sep",7:"Oct",8:"Nov",9:"Dec",10:"Jan",11:"Feb",12:"Mar"}
     df["Month"] = df["FIN_MONTH"].map(month_map)
     df["Quarter"] = df["FIN_MONTH"].map(QUARTER_MAP)
@@ -1129,6 +1155,18 @@ def show_overview():
             locked_zone = circle_row["zone"].iloc[0]
 
     with filter_cols[2]:
+        _filter_label("▥", "Entity")
+        entity_options = sorted(df["compname"].dropna().unique().tolist())
+        entity = st.selectbox(
+            "Entity",
+            ["All"] + entity_options,
+            key="overview_entity",
+            label_visibility="collapsed",
+        )
+    if entity != "All":
+        df = df[df["compname"] == entity]
+
+    with filter_cols[3]:
         _filter_label("◉", "Zone")
         if locked_zone:
             zone = locked_zone
@@ -1138,7 +1176,7 @@ def show_overview():
     if zone != "All":
         df = df[df["zone"] == zone]
 
-    with filter_cols[3]:
+    with filter_cols[4]:
         _filter_label("◎", "Circle")
         if locked_circle:
             circle = locked_circle
@@ -1148,7 +1186,7 @@ def show_overview():
     if circle != "All":
         df = df[df["circle"] == circle]
 
-    with filter_cols[4]:
+    with filter_cols[5]:
         _filter_label("⌂", "Branch")
         if locked_branch:
             branch = locked_branch
@@ -1158,21 +1196,21 @@ def show_overview():
     if branch != "All":
         df = df[df["branch"] == branch]
 
-    with filter_cols[5]:
+    with filter_cols[6]:
         _filter_label("▦", "Quarter")
         available_quarters = [q for q in QUARTER_ORDER if q in df["Quarter"].dropna().unique().tolist()]
         quarter = st.selectbox("Quarter", ["All"] + available_quarters, key="overview_quarter", label_visibility="collapsed")
     if quarter != "All":
         df = df[df["Quarter"] == quarter]
 
-    with filter_cols[6]:
+    with filter_cols[7]:
         _filter_label("▣", "Month")
         available_months = [m for m in MONTH_ORDER if m in df["Month"].dropna().unique().tolist()]
         month = st.selectbox("Month", ["All"] + available_months, key="overview_month", label_visibility="collapsed")
     if month != "All":
         df = df[df["Month"] == month]
 
-    with filter_cols[7]:
+    with filter_cols[8]:
         _filter_label("▤", "Load Type")
         loadtype = st.selectbox("Load Type", ["All"] + sorted(df["LOADTYPE"].dropna().unique().tolist()), key="overview_loadtype", label_visibility="collapsed")
     if loadtype != "All":
@@ -1183,7 +1221,7 @@ def show_overview():
         return
 
     active_filter_items = [
-        ("FY", fy), ("View", view_type), ("Zone", zone), ("Circle", circle),
+        ("FY", fy), ("View", view_type), ("Entity", entity), ("Zone", zone), ("Circle", circle),
         ("Branch", branch), ("Quarter", quarter), ("Month", month), ("Load", loadtype),
     ]
     active_filter_html = "".join(
@@ -1195,9 +1233,11 @@ def show_overview():
         st.markdown(f'<div class="filter-summary">{active_filter_html}</div>', unsafe_allow_html=True)
 
     # =========================
-    # Apply the same zone/circle/branch/quarter/month/loadtype filters to the LY data
+    # Apply the same entity/zone/circle/branch/quarter/month/loadtype filters to the LY data
     # =========================
     if not prev_df.empty:
+        if entity != "All" and "compname" in prev_df.columns:
+            prev_df = prev_df[prev_df["compname"] == entity]
         if zone != "All":
             prev_df = prev_df[prev_df["zone"] == zone]
         if circle != "All":
@@ -1733,6 +1773,69 @@ def show_overview():
                 """,
                 unsafe_allow_html=True,
             )
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    # =====================================================
+    # Revenue by Entity
+    # =====================================================
+    entity_df = (
+        df.groupby("compname", dropna=False)["REVENUE"]
+        .sum()
+        .reset_index()
+    )
+    entity_df["Revenue Cr"] = (entity_df["REVENUE"] / 10000000).round(2)
+    entity_total = entity_df["Revenue Cr"].sum()
+    entity_df["Contribution %"] = (
+        entity_df["Revenue Cr"] / entity_total * 100 if entity_total else 0
+    ).round(1)
+    entity_df = entity_df.sort_values("Revenue Cr", ascending=True).reset_index(drop=True)
+
+    with st.container(border=True):
+        st.markdown("###### Revenue by Entity")
+
+        fig_entity = go.Figure(
+            go.Bar(
+                y=entity_df["compname"],
+                x=entity_df["Revenue Cr"],
+                orientation="h",
+                marker=dict(
+                    color="#2563eb",
+                    line=dict(color="#1d4ed8", width=1.2),
+                ),
+                customdata=entity_df[["Contribution %"]].to_numpy(),
+                texttemplate="₹%{x:.2f} Cr<br>(%{customdata[0]:.1f}%)",
+                textposition="outside",
+                textfont=dict(size=11, color="#0f172a", family="Arial Black"),
+                cliponaxis=False,
+                hovertemplate=(
+                    "<b>%{y}</b><br>Revenue: ₹%{x:.2f} Cr"
+                    "<br>Contribution: %{customdata[0]:.1f}%<extra></extra>"
+                ),
+            )
+        )
+
+        entity_max = entity_df["Revenue Cr"].max() if not entity_df.empty else 1
+        entity_height = max(260, 48 * len(entity_df) + 70)
+        fig_entity.update_layout(
+            height=entity_height,
+            margin=dict(l=8, r=90, t=8, b=32),
+            xaxis_title="Revenue (Cr)",
+            xaxis_range=[0, max(entity_max * 1.22, 1)],
+            yaxis_title="",
+            showlegend=False,
+            bargap=0.18,
+            plot_bgcolor="#f8fafc",
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
+        apply_3d_chart_layout(
+            fig_entity,
+            height=entity_height,
+            margin=dict(l=8, r=90, t=8, b=32),
+        )
+        fig_entity.update_xaxes(showgrid=False, showline=False, zeroline=False)
+        fig_entity.update_yaxes(showgrid=False, showline=False, zeroline=False, automargin=True)
+        st.plotly_chart(fig_entity, use_container_width=True)
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
