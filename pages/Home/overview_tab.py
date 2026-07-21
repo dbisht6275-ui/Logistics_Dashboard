@@ -2436,30 +2436,6 @@ def show_overview():
         f"{branch_decline_count} branches have declined more than 20% vs LY.",
     ]
 
-    with st.container(border=True):
-        st.markdown(
-            "<div style='font-size:13px;font-weight:900;color:#102a43;margin-bottom:8px;'>MANAGEMENT INSIGHTS</div>",
-            unsafe_allow_html=True,
-        )
-        insight_icons = ["📈", "🚛", "🎯", "🌐", "⚠️"]
-        insight_titles = ["Revenue movement", "Load mix", "Revenue concentration", "Zone watch", "Branch watch"]
-        insight_cols = st.columns(5)
-        for idx, (message, icon, title) in enumerate(zip(key_insight_messages, insight_icons, insight_titles)):
-            with insight_cols[idx]:
-                st.markdown(
-                    f"""
-                    <div style="height:108px;padding:9px;border:1px solid #dfe8f2;border-radius:11px;
-                                background:linear-gradient(180deg,#ffffff,#f7fbff);box-shadow:0 4px 10px rgba(15,42,67,.06);">
-                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-                            <span style="font-size:14px;">{icon}</span>
-                            <span style="font-size:9px;font-weight:900;color:#486581;text-transform:uppercase;letter-spacing:.25px;">{title}</span>
-                        </div>
-                        <div style="font-size:10px;line-height:1.38;color:#243b53;font-weight:650;">{message}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
     # =====================================================
     # Top 10 Consignors / Consignees | View-type aware
     # =====================================================
@@ -2599,7 +2575,7 @@ def show_overview():
                         borderwidth=1, borderpad=3,
                     )
 
-                party_chart_height = max(360, 45 * len(party_yoy) + 110)
+                party_chart_height = 430
                 fig_party.update_layout(
                     barmode="group", bargap=0.28, bargroupgap=0.08, height=party_chart_height,
                     margin=dict(l=8, r=105, t=35, b=28), plot_bgcolor="#f8fafc",
@@ -2697,7 +2673,7 @@ def show_overview():
         )
         route_yoy = (
             route_yoy.sort_values("Current Revenue", ascending=False)
-            .head(10)
+            .head(7)
             .sort_values("Current Revenue", ascending=True)
             .reset_index(drop=True)
         )
@@ -2707,13 +2683,27 @@ def show_overview():
 
         with route_layout_col:
             with st.container(border=True):
-                st.markdown(
+                route_title_col, route_metric_col = st.columns([3, 1])
+                with route_title_col:
+                    st.markdown(
                     f"###### Top 7 Routes | {view_type} View"
                     "<div style='font-size:10px;color:#64748b;margin-top:-4px;'>"
                     + ("Origin → Destination" if view_type == "Origin" else "Destination → Origin")
                     + " direction, ranked by current-year revenue.</div>",
                     unsafe_allow_html=True,
-                )
+                    )
+                with route_metric_col:
+                    route_total_current = route_yoy["Current Revenue Cr"].sum() if not route_yoy.empty else 0
+                    route_total_previous = route_yoy["Previous Revenue Cr"].sum() if not route_yoy.empty else 0
+                    route_total_growth = pct_growth(route_total_current, route_total_previous) if route_total_previous > 0 else 0
+                    route_growth_color = "#166534" if route_total_growth >= 0 else "#dc2626"
+                    st.markdown(
+                        f"<div style='text-align:right;font-size:10px;color:#64748b;'>Top 7 Revenue</div>"
+                        f"<div style='text-align:right;font-size:16px;font-weight:900;color:#0f172a;'>₹{route_total_current:.2f} Cr</div>"
+                        f"<div style='text-align:right;font-size:10px;font-weight:800;color:{route_growth_color};'>"
+                        f"{growth_label(route_total_growth)} vs LY</div>",
+                        unsafe_allow_html=True,
+                    )
 
                 if route_yoy.empty:
                     st.info("No route data is available for the selected filters.")
@@ -2754,7 +2744,7 @@ def show_overview():
                         route_yoy["Previous Revenue Cr"].max(),
                         1,
                     )
-                    route_chart_height = max(360, 45 * len(route_yoy) + 110)
+                    route_chart_height = 430
                     fig_route.update_layout(
                         barmode="group",
                         bargap=0.28,
@@ -2876,6 +2866,33 @@ def show_overview():
                 hide_index=True,
                 height=190
             )
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    with st.container(border=True):
+        st.markdown(
+            "<div style='font-size:13px;font-weight:900;color:#102a43;margin-bottom:8px;'>MANAGEMENT INSIGHTS</div>",
+            unsafe_allow_html=True,
+        )
+        insight_icons = ["📈", "🚛", "🎯", "🌐", "⚠️"]
+        insight_titles = ["Revenue movement", "Load mix", "Revenue concentration", "Zone watch", "Branch watch"]
+        insight_cols = st.columns(5)
+        for idx, (message, icon, title) in enumerate(zip(key_insight_messages, insight_icons, insight_titles)):
+            with insight_cols[idx]:
+                st.markdown(
+                    f"""
+                    <div style="height:108px;padding:9px;border:1px solid #dfe8f2;border-radius:11px;
+                                background:linear-gradient(180deg,#ffffff,#f7fbff);box-shadow:0 4px 10px rgba(15,42,67,.06);">
+                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+                            <span style="font-size:14px;">{icon}</span>
+                            <span style="font-size:9px;font-weight:900;color:#486581;text-transform:uppercase;letter-spacing:.25px;">{title}</span>
+                        </div>
+                        <div style="font-size:10px;line-height:1.38;color:#243b53;font-weight:650;">{message}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
 
     # =====================================================
     # Branch/Agency Network Changes - NOW FILTERED BY MONTH & QUARTER
