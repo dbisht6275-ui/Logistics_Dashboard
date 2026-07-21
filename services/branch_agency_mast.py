@@ -4,7 +4,7 @@ from sqlalchemy import text
 from services.database import get_engine
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600)
 def load_stationmast_data(start_date, end_date):
 
     engine = get_engine()
