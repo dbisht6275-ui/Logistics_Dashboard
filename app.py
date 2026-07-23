@@ -122,6 +122,51 @@ st.markdown("""
     left: 10px !important;
 }
 
+/* ============================================================
+   Full-width dashboard after collapsing the sidebar.
+
+   The sidebar has a custom fixed expanded width above. Without an explicit
+   collapsed-state override, some Streamlit versions keep that width reserved,
+   leaving a blank strip and preventing the dashboard from using the viewport.
+   These rules affect layout only; no navigation or page logic is changed.
+   ============================================================ */
+[data-testid="stSidebar"][aria-expanded="false"],
+[data-testid="stSidebar"]:has([data-testid="stSidebarCollapsedControl"]) {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 0 0 !important;
+    border-right: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+/* Remove any width still reserved by the sidebar wrapper in collapsed state. */
+[data-testid="stAppViewContainer"] > section:has(
+    [data-testid="stSidebar"][aria-expanded="false"]
+) {
+    grid-template-columns: 0 minmax(0, 1fr) !important;
+}
+
+/* Let the main dashboard consume all remaining viewport width. */
+[data-testid="stAppViewContainer"] > .main,
+[data-testid="stAppViewContainer"] main,
+section.main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Keep normal wide padding, but prevent the main block from retaining a
+   sidebar-sized offset after collapse. */
+[data-testid="stAppViewContainer"] .main .block-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
 /* Brand block matching the shared reference layout. */
 .sugam-logo-wrap {
     min-height: 78px;
