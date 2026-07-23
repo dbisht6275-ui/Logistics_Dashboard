@@ -2405,9 +2405,13 @@ def show_overview():
                         font=dict(size=12, color="#334155", family="Arial"),
                     )
 
+                # Use the same Plotly height as the Weight Trend chart so both
+                # bordered Streamlit cards finish on the same horizontal line.
+                # This changes presentation only; zone values and calculations
+                # remain exactly the same.
                 fig_zone.update_layout(
-                    height=max(aligned_chart_height, 360),
-                    margin=dict(l=0, r=0, t=10, b=0),
+                    height=aligned_chart_height,
+                    margin=dict(l=0, r=0, t=4, b=0),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
                     showlegend=False,
