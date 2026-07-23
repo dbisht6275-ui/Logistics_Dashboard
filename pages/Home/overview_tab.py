@@ -2371,20 +2371,20 @@ def show_overview():
                     fig_zone.add_annotation(
                         x=0.64, y=y_pos, xref="paper", yref="paper",
                         text="●", showarrow=False, xanchor="left",
-                        font=dict(size=13, color=color),
+                        font=dict(size=17, color=color),
                     )
                     fig_zone.add_annotation(
                         x=0.69, y=y_pos, xref="paper", yref="paper",
                         text=(
-                            f"<b>{escape(str(row['zone_short']))}</b>"
-                            f"<br><span style='font-size:10px'>"
+                            f"<span style='font-size:15px'><b>{escape(str(row['zone_short']))}</b></span>"
+                            f"<br><span style='font-size:13px'>"
                             f"₹{row['Revenue Cr']:.2f} Cr &nbsp; ({row['Percentage']:.1f}%)"
                             "</span>"
                         ),
                         showarrow=False,
                         xanchor="left",
                         align="left",
-                        font=dict(size=11, color="#334155"),
+                        font=dict(size=14, color="#334155", family="Arial"),
                     )
 
                 fig_zone.update_layout(
@@ -2998,7 +2998,7 @@ def show_overview():
                 )
 
     # =====================================================
-    # Top 10 Routes | Same executive table treatment as Top Customers
+    # Top 7 Routes | Same executive table treatment as Top Customers
     # =====================================================
     compact_spacer()
 
@@ -3077,10 +3077,10 @@ def show_overview():
             axis=1,
         )
 
-        # Preserve the existing Top-10 ranking business rule.
+        # Preserve the existing Top-7 ranking business rule.
         route_yoy = (
             route_yoy.sort_values("Current Revenue", ascending=False)
-            .head(10)
+            .head(7)
             .reset_index(drop=True)
         )
 
@@ -3204,7 +3204,7 @@ def show_overview():
         with route_layout_col:
             with st.container(border=True):
                 st.info(
-                    "Top 10 Routes could not be displayed because the route column was not found "
+                    "Top 7 Routes could not be displayed because the route column was not found "
                     "in the booking dataset."
                 )
 
