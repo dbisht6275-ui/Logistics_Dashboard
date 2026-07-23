@@ -2869,7 +2869,7 @@ compact_spacer()
                         x=monthly_chart["Month"],
                         y=monthly_chart["Revenue Cr"],
                         name="Revenue",
-                        marker=dict(color="#2563eb", line=dict(color="#1d4ed8", width=1.2)),
+                        marker=dict(color="#2563eb", line=dict(color="#1d4ed8", width=1.1)),
                         text=monthly_chart["Revenue Cr"],
                         texttemplate="₹%{text:.2f} Cr",
                         textposition="outside",
