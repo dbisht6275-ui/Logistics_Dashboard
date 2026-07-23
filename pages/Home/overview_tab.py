@@ -2998,7 +2998,7 @@ def show_overview():
                 )
 
     # =====================================================
-    # Top 7 Routes | Same executive table treatment as Top Customers
+    # Top 10 Routes | Same executive table treatment as Top Customers
     # =====================================================
     compact_spacer()
 
@@ -3077,10 +3077,10 @@ def show_overview():
             axis=1,
         )
 
-        # Preserve the existing Top-7 ranking business rule.
+        # Preserve the existing Top-10 ranking business rule.
         route_yoy = (
             route_yoy.sort_values("Current Revenue", ascending=False)
-            .head(7)
+            .head(10)
             .reset_index(drop=True)
         )
 
@@ -3204,7 +3204,7 @@ def show_overview():
         with route_layout_col:
             with st.container(border=True):
                 st.info(
-                    "Top 7 Routes could not be displayed because the route column was not found "
+                    "Top 10 Routes could not be displayed because the route column was not found "
                     "in the booking dataset."
                 )
 
