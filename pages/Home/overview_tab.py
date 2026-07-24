@@ -740,7 +740,7 @@ def _inject_overview_css():
 
 def get_revenue_conversion(conversion_type):
     """Display-only conversion; business calculations remain in rupees."""
-    return (100000, "Lakh") if conversion_type == "Lakh" else (10000000, "Cr")
+    return (100000, "Lac") if conversion_type == "Lac" else (10000000, "Cr")
 
 
 def format_revenue(v, conversion_type):
@@ -1426,9 +1426,8 @@ def show_overview():
     with filter_cols[9]:
         conversion_type = st.selectbox(
             "₹ Conversion",
-            ["Crore", "Lakh"],
+            ["Crore", "Lac"],
             key="overview_conversion_type",
-            help="Changes revenue display in KPIs, charts, tables and insights only.",
         )
     revenue_divisor, revenue_unit = get_revenue_conversion(conversion_type)
 
@@ -1842,8 +1841,8 @@ def show_overview():
             )
 
             # build_yoy_trend retains its original Crore calculation. Convert only
-            # the returned display columns when Lakh is selected.
-            if conversion_type == "Lakh":
+            # the returned display columns when Lac is selected.
+            if conversion_type == "Lac":
                 for revenue_col in ["Revenue Cr", "Prev Revenue Cr"]:
                     if revenue_col in yoy_df.columns:
                         yoy_df[revenue_col] = yoy_df[revenue_col] * 100
@@ -1868,7 +1867,7 @@ def show_overview():
                     text=yoy_df["Prev Revenue Cr"],
                     texttemplate="%{text:.2f}",
                     textposition="outside",
-                    textfont=dict(size=9, color="#64748b"),
+                    textfont=dict(size=12, color="#475569", family="Arial Black"),
                     cliponaxis=False,
                     hovertemplate=f"<b>%{{x}}</b><br>LY Revenue: ₹%{{y:.2f}} {revenue_unit}<extra></extra>",
                 )
@@ -1883,7 +1882,7 @@ def show_overview():
                     text=yoy_df["Revenue Cr"],
                     texttemplate="%{text:.2f}",
                     textposition="outside",
-                    textfont=dict(size=9, color="#2563eb"),
+                    textfont=dict(size=12, color="#1d4ed8", family="Arial Black"),
                     cliponaxis=False,
                     hovertemplate=f"<b>%{{x}}</b><br>Current Revenue: ₹%{{y:.2f}} {revenue_unit}<extra></extra>",
                 )
@@ -1900,7 +1899,7 @@ def show_overview():
                         text=forecast_df["Forecast Revenue Cr"],
                         texttemplate="%{text:.2f}",
                         textposition="outside",
-                        textfont=dict(size=9, color="#f97316"),
+                        textfont=dict(size=12, color="#ea580c", family="Arial Black"),
                         cliponaxis=False,
                         hovertemplate=f"<b>%{{x}}</b><br>Forecast Revenue: ₹%{{y:.2f}} {revenue_unit}<extra></extra>",
                     )
@@ -1933,7 +1932,7 @@ def show_overview():
                             y=bar_top + (yoy_max * growth_gap),
                             text=r["Growth Label"],
                             showarrow=False,
-                            font=dict(size=10, color=label_color, family="Arial Black"),
+                            font=dict(size=12, color=label_color, family="Arial Black"),
                         )
 
             fig_yoy.update_layout(
@@ -1947,8 +1946,9 @@ def show_overview():
                     yanchor="bottom",
                     y=1.05,
                     x=0,
-                    font=dict(size=9),
+                    font=dict(size=11),
                 ),
+                font=dict(size=11),
                 xaxis_title="",
                 yaxis_title=f"Revenue ({revenue_unit})",
                 yaxis_range=[0, yoy_max * (1.48 if trend_type == "Monthly" else 1.35)],
@@ -1956,8 +1956,8 @@ def show_overview():
                 bargroupgap=0.08,
             )
             apply_3d_chart_layout(fig_yoy, height=REVENUE_CHART_HEIGHT, margin=dict(l=8, r=8, t=34, b=8))
-            fig_yoy.update_xaxes(showgrid=False, showline=False, zeroline=False)
-            fig_yoy.update_yaxes(showgrid=False, showline=False, zeroline=False)
+            fig_yoy.update_xaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=11))
+            fig_yoy.update_yaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=11), title_font=dict(size=12))
 
             st.plotly_chart(fig_yoy, width="stretch")
 
@@ -2253,7 +2253,7 @@ def show_overview():
                     text=weight_yoy_df["Prev Weight MT"],
                     texttemplate="%{text:.0f}",
                     textposition="outside",
-                    textfont=dict(size=9, color="#64748b"),
+                    textfont=dict(size=12, color="#475569", family="Arial Black"),
                 )
             )
 
@@ -2266,7 +2266,7 @@ def show_overview():
                     text=weight_yoy_df["Weight MT"],
                     texttemplate="%{text:.0f}",
                     textposition="outside",
-                    textfont=dict(size=9, color="#0f766e"),
+                    textfont=dict(size=12, color="#0f766e", family="Arial Black"),
                 )
             )
 
@@ -2291,7 +2291,7 @@ def show_overview():
                             y=bar_top + (weight_max * growth_gap),
                             text=r["Growth Label"],
                             showarrow=False,
-                            font=dict(size=10, color=label_color, family="Arial Black"),
+                            font=dict(size=12, color=label_color, family="Arial Black"),
                         )
 
             fig_weight.update_layout(
@@ -2300,12 +2300,13 @@ def show_overview():
                 margin=dict(l=8, r=8, t=40, b=8),
                 plot_bgcolor="#f8fafc",
                 paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(size=11),
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
                     y=1.03,
                     x=0,
-                    font=dict(size=9),
+                    font=dict(size=11),
                 ),
                 yaxis_title="Weight (MT)",
                 yaxis_range=[0, weight_max * (1.48 if weight_trend_type == "Monthly" else 1.35)],
@@ -2317,8 +2318,8 @@ def show_overview():
                 height=aligned_chart_height,
                 margin=dict(l=8, r=8, t=40, b=8),
             )
-            fig_weight.update_xaxes(showgrid=False, showline=False, zeroline=False)
-            fig_weight.update_yaxes(showgrid=False, showline=False, zeroline=False)
+            fig_weight.update_xaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=11))
+            fig_weight.update_yaxes(showgrid=False, showline=False, zeroline=False, tickfont=dict(size=11), title_font=dict(size=12))
 
             st.plotly_chart(
                 fig_weight,
